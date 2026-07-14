@@ -18,9 +18,10 @@ Delivery Engine), with its own Docker image, Helm chart, CI and release lifecycl
 
 ## Pipeline
 
-1. **Consume** `objects.flat` (key = `objectId`, so all versions of an object share a partition).
-2. **Parse & validate** the record. Two formats, selected by `messageType`: `OBJECT` and
-   `BEFORE_AFTER`. Structurally invalid records → **input DLQ**.
+1. **Consume** `objects.flat` (all versions of an object share a partition via the object key).
+2. **Parse & validate** the record (real source format — see below). The type is inferred from
+   structure: a body with `before` and `after` objects is `BEFORE_AFTER`, a bare object is `OBJECT`.
+   Structurally invalid records → **input DLQ**.
 3. **Pre-match** candidate subscriptions on the *flat* payload using three-valued (Kleene) logic: a
    comparison over a field present in the flat payload is decided; one that needs enrichment is
    `UNKNOWN`. A subscription is excluded only when its pre-match is definitively `FALSE`
@@ -30,13 +31,28 @@ Delivery Engine), with its own Docker image, Helm chart, CI and release lifecycl
 5. **Enrich once** — one HTTP call per record, no micro-batching:
    - `OBJECT`: `GET /api/v1/enriched-objects/{objectClass}?globalId=..&outputField=..`
    - `BEFORE_AFTER`: `POST /api/v1/enriched-objects/{objectClass}/revisions?outputField=..` with a
-     body of both revision ids; the response is matched back **by `revisionId`** (order-independent,
-     both required, no duplicates).
+     body of both version ids (`before.id`, `after.id`); the response is matched back **by `id`**
+     (order-independent, both required, no duplicates).
 6. **Filter** the enriched object(s). `BEFORE_AFTER` reports `beforeMatched` / `afterMatched` per
    subscription; a subscription is included if either is true. A filter is never treated as false
    just because a field is missing (§28): if it cannot be computed the message goes to the
    **enrichment DLQ**.
 7. **Publish** at most one output record (§21/§22) keyed by `objectId`, or drop if nothing matched.
+
+## Input format
+
+The source producer sends the flat object itself — no envelope, no `messageType`, no `payload`
+wrapper. A `BEFORE_AFTER` change is `{ "before": {…}, "after": {…} }`; everything else is a single
+`OBJECT`. Field mapping into the internal model:
+
+| Internal | Source field | Notes |
+|----------|--------------|-------|
+| `messageType` | *(structure)* | `before`+`after` ⇒ BEFORE_AFTER, else OBJECT |
+| `objectClass` | `objectClass` → `objectType` | reads `objectClass`, falls back to `objectType` during the rename |
+| `objectId` (Kafka key / output) | `globalId` | stable across revisions |
+| `revisionId` (version id, `/revisions` body) | `id` | unique per version; before/after are distinguished **only** by their tags |
+| `sourceEventId` | `revisionEventId` | of the current (`after`) version; must be stable for idempotency (§30) |
+| `payload` | *the whole flat object* | fields are top-level (`portfolioId`, `status`, …) |
 
 ## Metadata & filter compilation
 

@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Maps a {@code POST /revisions} response back to revision IDs (§17). Does not rely on element
- * order; verifies there are no duplicates and that every expected revision is present. Tolerates the
- * two plausible response shapes (§37): an array of {@code {revisionId, ...payload}} objects, or an
- * object keyed by revision id. Throws {@link EnrichException} (NON_RETRYABLE) on any mismatch, which
- * routes the message to the Enrichment DLQ.
+ * Maps a {@code POST /revisions} response back to version ids (§17). The version id is the object's
+ * {@code id}. Does not rely on element order; verifies there are no duplicates and that every
+ * expected id is present. Tolerates the two plausible response shapes (§37): an array of
+ * {@code {id, ...payload}} objects, or an object keyed by id. Throws {@link EnrichException}
+ * (NON_RETRYABLE) on any mismatch, which routes the message to the Enrichment DLQ.
  */
 public final class RevisionMatcher {
 
@@ -26,9 +26,9 @@ public final class RevisionMatcher {
         Map<Long, JsonNode> byRevision = new HashMap<>();
         if (response.isArray()) {
             for (JsonNode element : response) {
-                JsonNode revNode = element.get("revisionId");
+                JsonNode revNode = element.get("id");
                 if (revNode == null || !revNode.canConvertToLong()) {
-                    throw bad("element without a numeric revisionId");
+                    throw bad("element without a numeric id");
                 }
                 putUnique(byRevision, revNode.asLong(), element);
             }

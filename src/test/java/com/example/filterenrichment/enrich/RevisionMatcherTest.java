@@ -16,8 +16,8 @@ class RevisionMatcherTest {
     void matchesArrayResponseByRevisionIdRegardlessOfOrder() {
         JsonNode resp = TestFixtures.json("""
                 [
-                  {"revisionId": 987654, "contractId": 2},
-                  {"revisionId": 987653, "contractId": 1}
+                  {"id": 987654, "contractId": 2},
+                  {"id": 987653, "contractId": 1}
                 ]
                 """);
         Map<Long, JsonNode> byRev = RevisionMatcher.match(resp, List.of(987653L, 987654L));

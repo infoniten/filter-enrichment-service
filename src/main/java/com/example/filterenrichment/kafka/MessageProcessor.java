@@ -2,7 +2,8 @@ package com.example.filterenrichment.kafka;
 
 import com.example.filterenrichment.domain.EnrichmentStatus;
 import com.example.filterenrichment.domain.InputMessage;
-import com.example.filterenrichment.domain.InputMessageValidator;
+import com.example.filterenrichment.domain.InputMessageParser;
+import com.example.filterenrichment.domain.InputParseException;
 import com.example.filterenrichment.enrich.EnrichClient;
 import com.example.filterenrichment.enrich.EnrichException;
 import com.example.filterenrichment.enrich.RevisionMatcher;
@@ -45,6 +46,7 @@ public class MessageProcessor {
     private static final Logger log = LoggerFactory.getLogger(MessageProcessor.class);
 
     private final ObjectMapper mapper;
+    private final InputMessageParser parser;
     private final SubscriptionRegistry registry;
     private final MetamodelHolder metamodel;
     private final EnrichClient enrichClient;
@@ -54,6 +56,7 @@ public class MessageProcessor {
     private final Metrics metrics;
 
     public MessageProcessor(ObjectMapper mapper,
+                            InputMessageParser parser,
                             SubscriptionRegistry registry,
                             MetamodelHolder metamodel,
                             EnrichClient enrichClient,
@@ -62,6 +65,7 @@ public class MessageProcessor {
                             DlqPublisher dlqPublisher,
                             Metrics metrics) {
         this.mapper = mapper;
+        this.parser = parser;
         this.registry = registry;
         this.metamodel = metamodel;
         this.enrichClient = enrichClient;
@@ -76,15 +80,9 @@ public class MessageProcessor {
 
         InputMessage msg;
         try {
-            msg = mapper.readValue(value, InputMessage.class);
-        } catch (Exception e) {
-            dlqPublisher.toInput(key, value, "malformed message: " + e.getMessage());
-            return;
-        }
-
-        var invalid = InputMessageValidator.validate(msg);
-        if (invalid.isPresent()) {
-            dlqPublisher.toInput(key, value, invalid.get());
+            msg = parser.parse(value);
+        } catch (InputParseException e) {
+            dlqPublisher.toInput(key, value, e.getMessage());
             return;
         }
         metrics.inputType(msg.messageType());

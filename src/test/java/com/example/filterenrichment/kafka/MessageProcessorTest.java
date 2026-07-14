@@ -1,6 +1,7 @@
 package com.example.filterenrichment.kafka;
 
 import com.example.filterenrichment.TestFixtures;
+import com.example.filterenrichment.domain.InputMessageParser;
 import com.example.filterenrichment.domain.RuntimeSubscription;
 import com.example.filterenrichment.enrich.EnrichClient;
 import com.example.filterenrichment.enrich.EnrichException;
@@ -55,8 +56,8 @@ class MessageProcessorTest {
         MetamodelHolder metamodel = mock(MetamodelHolder.class);
         when(metamodel.get()).thenReturn(catalog);
 
-        processor = new MessageProcessor(mapper, registry, metamodel, enrichClient,
-                backpressure, outputPublisher, dlqPublisher, new Metrics(new SimpleMeterRegistry()));
+        processor = new MessageProcessor(mapper, new InputMessageParser(mapper), registry, metamodel,
+                enrichClient, backpressure, outputPublisher, dlqPublisher, new Metrics(new SimpleMeterRegistry()));
     }
 
     private void register(String id, String objectClass, List<String> fields, String filter) {
@@ -78,7 +79,7 @@ class MessageProcessorTest {
         processor.process("t1", objectMessage());
 
         ArgumentCaptor<JsonNode> out = ArgumentCaptor.forClass(JsonNode.class);
-        verify(outputPublisher).publish(eq("t1"), out.capture(), any());
+        verify(outputPublisher).publish(eq("123"), out.capture(), any()); // keyed by globalId
         JsonNode published = out.getValue();
         assertThat(published.get("messageType").asText()).isEqualTo("OBJECT");
         assertThat(published.get("matchedSubscriptionIds")).hasSize(1);
@@ -136,12 +137,12 @@ class MessageProcessorTest {
     void beforeAfter_beforeMatchesOnly_recordsBothFlags() {
         register("sub-1", "FxSpotForwardTrade", List.of("Trade.contractId"), "portfolioId==1");
         when(enrichClient.enrichRevisions(eq("FxSpotForwardTrade"), eq(List.of(10L, 11L)), anyList()))
-                .thenReturn(TestFixtures.json("[{\"revisionId\":10,\"contractId\":1},{\"revisionId\":11,\"contractId\":1}]"));
+                .thenReturn(TestFixtures.json("[{\"id\":10,\"contractId\":1},{\"id\":11,\"contractId\":1}]"));
 
         processor.process("t1", beforeAfterMessage());
 
         ArgumentCaptor<JsonNode> out = ArgumentCaptor.forClass(JsonNode.class);
-        verify(outputPublisher).publish(eq("t1"), out.capture(), any());
+        verify(outputPublisher).publish(eq("123"), out.capture(), any()); // keyed by globalId
         JsonNode m = out.getValue().get("subscriptionMatches").get(0);
         assertThat(m.get("subscriptionId").asText()).isEqualTo("sub-1");
         assertThat(m.get("beforeMatched").asBoolean()).isTrue();
@@ -152,7 +153,7 @@ class MessageProcessorTest {
     void beforeAfter_missingRevision_routesToEnrichmentDlq() {
         register("sub-1", "FxSpotForwardTrade", List.of("Trade.contractId"), "portfolioId==1");
         when(enrichClient.enrichRevisions(any(), anyList(), anyList()))
-                .thenReturn(TestFixtures.json("[{\"revisionId\":10,\"contractId\":1}]")); // rev 11 missing
+                .thenReturn(TestFixtures.json("[{\"id\":10,\"contractId\":1}]")); // id 11 missing
 
         byte[] value = beforeAfterMessage();
         processor.process("t1", value);
@@ -161,20 +162,23 @@ class MessageProcessorTest {
         verify(outputPublisher, never()).publish(any(), any(), any());
     }
 
+    // Real source format: no envelope/messageType/payload; flat object; objectType (soon objectClass).
     private byte[] objectMessage() {
         return ("""
-                {"messageType":"OBJECT","sourceEventId":"e1","objectClass":"FxSpotForwardTrade",
-                 "objectId":"t1","globalId":123,"revisionId":987,"savedAt":"2026-07-13T10:15:30Z",
-                 "payload":{"portfolioId":1,"status":"ACTIVE"}}
+                {"objectType":"FxSpotForwardTrade","globalId":123,"id":987,"revision":5,
+                 "revisionEventId":"110640124","savedAt":"2026-07-13T10:15:30Z",
+                 "portfolioId":1,"status":"ACTIVE"}
                 """).getBytes(StandardCharsets.UTF_8);
     }
 
     private byte[] beforeAfterMessage() {
         return ("""
-                {"messageType":"BEFORE_AFTER","sourceEventId":"e2","objectClass":"FxSpotForwardTrade",
-                 "objectId":"t1","savedAt":"2026-07-13T10:20:00Z",
-                 "before":{"globalId":123,"revisionId":10,"payload":{"portfolioId":1,"status":"ACTIVE"}},
-                 "after":{"globalId":123,"revisionId":11,"payload":{"portfolioId":2,"status":"ACTIVE"}}}
+                {"before":{"objectType":"FxSpotForwardTrade","globalId":123,"id":10,"revision":1666,
+                           "revisionEventId":"110640123","savedAt":"2026-07-13T10:19:00Z",
+                           "portfolioId":1,"status":"ACTIVE"},
+                 "after":{"objectType":"FxSpotForwardTrade","globalId":123,"id":11,"revision":1667,
+                          "revisionEventId":"110640124","savedAt":"2026-07-13T10:20:00Z",
+                          "portfolioId":2,"status":"ACTIVE"}}
                 """).getBytes(StandardCharsets.UTF_8);
     }
 }

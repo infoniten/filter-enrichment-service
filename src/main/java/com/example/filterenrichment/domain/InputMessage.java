@@ -1,31 +1,33 @@
 package com.example.filterenrichment.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * Parsed input Kafka message (§10/§13). One record models both formats: {@code OBJECT} carries a
- * single object (top-level {@code globalId}/{@code revisionId}/{@code payload}); {@code BEFORE_AFTER}
- * carries {@link #before()} and {@link #after()} versions. Absent/optional fields are validated per
- * type by {@code InputMessageValidator}.
+ * Parsed input message in the real source format. There is no envelope and no {@code messageType}:
+ * the type is inferred from structure — a body with {@code before} and {@code after} objects is
+ * {@link MessageType#BEFORE_AFTER}, a bare object is {@link MessageType#OBJECT}. The flat object
+ * <em>is</em> the payload (all fields at the top level, including {@code globalId}/{@code id}).
+ *
+ * <p>Field mapping: {@code objectClass} &larr; {@code objectClass} (fallback {@code objectType});
+ * {@code objectId} &larr; {@code globalId}; {@code revisionId} &larr; {@code id} (unique version id);
+ * {@code sourceEventId} &larr; {@code revisionEventId} (of the current/after version).
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record InputMessage(
         MessageType messageType,
         String sourceEventId,
         String objectClass,
         String objectId,
-        String savedAt,
-        // OBJECT
         Long globalId,
         Long revisionId,
+        String savedAt,
+        // OBJECT: the whole flat object
         JsonNode payload,
         // BEFORE_AFTER
         Version before,
         Version after
 ) {
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Version(Long globalId, Long revisionId, JsonNode payload) {
+    /** One version of an object; {@code revisionId} is its {@code id}, {@code payload} the flat body. */
+    public record Version(Long globalId, Long revisionId, String revisionEventId, String savedAt, JsonNode payload) {
     }
 }
