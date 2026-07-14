@@ -47,7 +47,6 @@ public class InputMessageParser {
         Long id = requireLong(node, "id");
         return new InputMessage(
                 MessageType.OBJECT,
-                text(node, "revisionEventId"),
                 objectClass,
                 String.valueOf(globalId),
                 globalId,
@@ -64,7 +63,6 @@ public class InputMessageParser {
         String objectClass = requireClass(afterNode);
         return new InputMessage(
                 MessageType.BEFORE_AFTER,
-                after.revisionEventId(),
                 objectClass,
                 String.valueOf(after.globalId()),
                 after.globalId(),
@@ -82,7 +80,7 @@ public class InputMessageParser {
         requireClass(node);
         Long globalId = requireLong(node, "globalId");
         Long id = requireLong(node, "id"); // unique version id -> revisionId
-        return new InputMessage.Version(globalId, id, text(node, "revisionEventId"), text(node, "savedAt"), node);
+        return new InputMessage.Version(globalId, id, text(node, "savedAt"), node);
     }
 
     /** objectClass with fallback to the (soon-to-be-renamed) objectType. */

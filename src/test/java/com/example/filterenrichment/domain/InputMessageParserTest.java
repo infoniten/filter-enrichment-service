@@ -29,7 +29,6 @@ class InputMessageParserTest {
         assertThat(msg.globalId()).isEqualTo(110038431L);
         assertThat(msg.objectId()).isEqualTo("110038431");     // objectId <- globalId
         assertThat(msg.revisionId()).isEqualTo(201027932L);    // revisionId <- id
-        assertThat(msg.sourceEventId()).isEqualTo("110640124"); // <- revisionEventId
         assertThat(msg.payload().get("portfolioId").asInt()).isEqualTo(6052);
     }
 
@@ -46,7 +45,6 @@ class InputMessageParserTest {
         assertThat(msg.before().revisionId()).isEqualTo(201027900L); // distinct version ids
         assertThat(msg.after().revisionId()).isEqualTo(201027932L);
         assertThat(msg.objectId()).isEqualTo("110038431");
-        assertThat(msg.sourceEventId()).isEqualTo("110640124"); // after.revisionEventId
     }
 
     @Test

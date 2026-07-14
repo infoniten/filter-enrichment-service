@@ -9,12 +9,11 @@ import com.fasterxml.jackson.databind.JsonNode;
  * <em>is</em> the payload (all fields at the top level, including {@code globalId}/{@code id}).
  *
  * <p>Field mapping: {@code objectClass} &larr; {@code objectClass} (fallback {@code objectType});
- * {@code objectId} &larr; {@code globalId}; {@code revisionId} &larr; {@code id} (unique version id);
- * {@code sourceEventId} &larr; {@code revisionEventId} (of the current/after version).
+ * {@code objectId} &larr; {@code globalId}; {@code revisionId} &larr; {@code id} (unique version id,
+ * also the downstream dedup key).
  */
 public record InputMessage(
         MessageType messageType,
-        String sourceEventId,
         String objectClass,
         String objectId,
         Long globalId,
@@ -28,6 +27,6 @@ public record InputMessage(
 ) {
 
     /** One version of an object; {@code revisionId} is its {@code id}, {@code payload} the flat body. */
-    public record Version(Long globalId, Long revisionId, String revisionEventId, String savedAt, JsonNode payload) {
+    public record Version(Long globalId, Long revisionId, String savedAt, JsonNode payload) {
     }
 }

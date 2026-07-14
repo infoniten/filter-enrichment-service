@@ -85,7 +85,6 @@ public class MessageProcessor {
             return;
         }
         metrics.inputType(msg.messageType());
-        MDC.put("sourceEventId", String.valueOf(msg.sourceEventId()));
         MDC.put("messageType", String.valueOf(msg.messageType()));
         MDC.put("objectClass", String.valueOf(msg.objectClass()));
 

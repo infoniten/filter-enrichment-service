@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Structured logging (§36). Each line carries the correlation context via MDC:
-  traceId, sourceEventId, messageType, objectClass, objectId, revision ids, candidate/matched
+  traceId, messageType, objectClass, objectId, revision ids, candidate/matched
   counts, processingStage and errorCode. Full object payloads are never logged by default.
 -->
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} traceId=%X{traceId:-} sourceEventId=%X{sourceEventId:-} messageType=%X{messageType:-} objectClass=%X{objectClass:-} objectId=%X{objectId:-} beforeRevisionId=%X{beforeRevisionId:-} afterRevisionId=%X{afterRevisionId:-} candidates=%X{candidateSubscriptionCount:-} matched=%X{matchedSubscriptionCount:-} requestedFields=%X{requestedFieldCount:-} stage=%X{processingStage:-} errorCode=%X{errorCode:-} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} traceId=%X{traceId:-} messageType=%X{messageType:-} objectClass=%X{objectClass:-} objectId=%X{objectId:-} beforeRevisionId=%X{beforeRevisionId:-} afterRevisionId=%X{afterRevisionId:-} candidates=%X{candidateSubscriptionCount:-} matched=%X{matchedSubscriptionCount:-} requestedFields=%X{requestedFieldCount:-} stage=%X{processingStage:-} errorCode=%X{errorCode:-} - %msg%n</pattern>
         </encoder>
     </appender>
 

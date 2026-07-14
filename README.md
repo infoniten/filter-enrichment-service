@@ -50,8 +50,7 @@ wrapper. A `BEFORE_AFTER` change is `{ "before": {…}, "after": {…} }`; every
 | `messageType` | *(structure)* | `before`+`after` ⇒ BEFORE_AFTER, else OBJECT |
 | `objectClass` | `objectClass` → `objectType` | reads `objectClass`, falls back to `objectType` during the rename |
 | `objectId` (Kafka key / output) | `globalId` | stable across revisions |
-| `revisionId` (version id, `/revisions` body) | `id` | unique per version; before/after are distinguished **only** by their tags |
-| `sourceEventId` | `revisionEventId` | of the current (`after`) version; must be stable for idempotency (§30) |
+| `revisionId` (version id, `/revisions` body, downstream dedup key) | `id` | unique per version; before/after are distinguished **only** by their tags |
 | `payload` | *the whole flat object* | fields are top-level (`portfolioId`, `status`, …) |
 
 ## Output format
