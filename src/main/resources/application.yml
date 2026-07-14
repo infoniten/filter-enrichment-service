@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: filter-enrichment-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        # /health/ready — serve traffic only when all upstreams and local state are ready (§34)
+        readiness:
+          include: readinessState,redis,subscriptions,metadata,kafkaConsumer,kafkaProducer,enrichService
+        # /health/live — process is alive (§34)
+        liveness:
+          include: livenessState
+  health:
+    circuitbreakers:
+      enabled: true
+
+filter-enrichment:
+  served-engine: ${SERVED_ENGINE:OBJECT_BATCH}
+  kafka:
+    input-topic: ${INPUT_TOPIC:objects.flat}
+    output-topic: ${OUTPUT_TOPIC:objects.enriched}
+    consumer-group: ${CONSUMER_GROUP:filter-enrichment-service}
+    concurrency: ${KAFKA_CONCURRENCY:3}
+    dlq:
+      input: ${DLQ_INPUT_TOPIC:filter-enrichment.input.dlq}
+      enrichment: ${DLQ_ENRICHMENT_TOPIC:filter-enrichment.enrichment.dlq}
+      output: ${DLQ_OUTPUT_TOPIC:filter-enrichment.output.dlq}
+  redis:
+    channel: ${REDIS_CHANNEL:subscriptions:changes}
+    runtime-set-key: ${REDIS_RUNTIME_SET_KEY:subs:runtime}
+    config-key-prefix: ${REDIS_CONFIG_KEY_PREFIX:sub:}
+  enrich:
+    base-url: ${ENRICH_SERVICE_URL:http://object-enrich-service:8080}
+    domain-config-path: ${ENRICH_DOMAIN_CONFIG_PATH:/api/config/domain}
+    connect-timeout-ms: ${ENRICH_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${ENRICH_READ_TIMEOUT_MS:5000}
+    max-connections: ${ENRICH_MAX_CONNECTIONS:100}
+    max-connections-per-route: ${ENRICH_MAX_CONNECTIONS_PER_ROUTE:100}
+    circuit-breaker:
+      failure-rate-threshold: ${ENRICH_CB_FAILURE_RATE:50}
+      wait-duration-in-open-state-ms: ${ENRICH_CB_WAIT_MS:10000}
+      sliding-window-size: ${ENRICH_CB_WINDOW:50}
+      minimum-number-of-calls: ${ENRICH_CB_MIN_CALLS:20}
+  retry:
+    max-attempts: ${RETRY_MAX_ATTEMPTS:4}
+    initial-backoff-ms: ${RETRY_INITIAL_BACKOFF_MS:200}
+    max-backoff-ms: ${RETRY_MAX_BACKOFF_MS:5000}
+    multiplier: ${RETRY_MULTIPLIER:2.0}
+    jitter: ${RETRY_JITTER:0.3}
+  backpressure:
+    max-concurrent-http-requests: ${MAX_CONCURRENT_HTTP:32}
+    acquire-timeout-ms: ${BACKPRESSURE_ACQUIRE_TIMEOUT_MS:1000}
+    pause-ms: ${BACKPRESSURE_PAUSE_MS:500}
+  subscription-service:
+    base-url: ${SUBSCRIPTION_SERVICE_URL:http://subscription-service:8080}
+
+logging:
+  level:
+    com.example.filterenrichment: INFO

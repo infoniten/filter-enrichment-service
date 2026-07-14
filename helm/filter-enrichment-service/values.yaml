@@ -1,0 +1,38 @@
+# Pods are capped by the input topic's partition count (§32): keep replicaCount <= partitions.
+replicaCount: 3
+
+image:
+  repository: filter-enrichment-service
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Upstream connectivity (§7/§24/§25) — override per environment.
+config:
+  kafkaBootstrap: "kafka:9092"
+  redisHost: "redis"
+  redisPort: "6379"
+  enrichServiceUrl: "http://object-enrich-service:8080"
+  subscriptionServiceUrl: "http://subscription-service:8080"
+  inputTopic: "objects.flat"
+  outputTopic: "objects.enriched"
+  consumerGroup: "filter-enrichment-service"
+  servedEngine: "OBJECT_BATCH"
+  maxConcurrentHttp: "32"
+
+# Prometheus scraping of /actuator/prometheus
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/path: "/actuator/prometheus"
+  prometheus.io/port: "8080"

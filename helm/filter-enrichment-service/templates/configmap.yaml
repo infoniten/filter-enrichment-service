@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fes.name" . }}
+  labels:
+    {{- include "fes.labels" . | nindent 4 }}
+data:
+  KAFKA_BOOTSTRAP: {{ .Values.config.kafkaBootstrap | quote }}
+  REDIS_HOST: {{ .Values.config.redisHost | quote }}
+  REDIS_PORT: {{ .Values.config.redisPort | quote }}
+  ENRICH_SERVICE_URL: {{ .Values.config.enrichServiceUrl | quote }}
+  SUBSCRIPTION_SERVICE_URL: {{ .Values.config.subscriptionServiceUrl | quote }}
+  INPUT_TOPIC: {{ .Values.config.inputTopic | quote }}
+  OUTPUT_TOPIC: {{ .Values.config.outputTopic | quote }}
+  CONSUMER_GROUP: {{ .Values.config.consumerGroup | quote }}
+  SERVED_ENGINE: {{ .Values.config.servedEngine | quote }}
+  MAX_CONCURRENT_HTTP: {{ .Values.config.maxConcurrentHttp | quote }}
