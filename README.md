@@ -54,6 +54,29 @@ wrapper. A `BEFORE_AFTER` change is `{ "before": {…}, "after": {…} }`; every
 | `sourceEventId` | `revisionEventId` | of the current (`after`) version; must be stable for idempotency (§30) |
 | `payload` | *the whole flat object* | fields are top-level (`portfolioId`, `status`, …) |
 
+## Output format
+
+Minimal — the enriched object is self-describing, so nothing from it is duplicated in an envelope.
+Keyed by `globalId`.
+
+`OBJECT`:
+```json
+{ "matchedSubscriptionIds": ["sub-123"],
+  "object": { …enriched object… },
+  "metadata": { "enrichmentStatus": "FULL", "enrichedAt": "…" } }
+```
+
+`BEFORE_AFTER`:
+```json
+{ "subscriptionMatches": [ { "subscriptionId": "sub-123", "beforeMatched": false, "afterMatched": true } ],
+  "before": { …enriched object… },
+  "after":  { …enriched object… },
+  "metadata": { "enrichmentStatus": "FULL", "enrichedAt": "…" } }
+```
+
+The type is inferable from the shape (`object` vs `before`/`after`). `metadata.missingFields` is added
+only on `PARTIAL`.
+
 ## Metadata & filter compilation
 
 The domain model is loaded once from `GET /api/config/domain` at startup (and on config reload) and
@@ -131,7 +154,9 @@ tolerates both plausible `/revisions` response shapes (§37).
 
 - `GET /api/config/domain` is modeled on the search-service metadata shape (classes / declared
   scalar fields / hierarchy / relations); the exact contract should be pinned by a contract test.
-- The enriched payload is deep-merged over the flat source payload so the output carries both.
+- The enriched object returned by the Enrich Service is self-describing (carries `objectClass`,
+  `globalId`, `id`, `revision`, `savedAt` plus flat scalars and resolved relations), so it is emitted
+  as-is — no merge with the raw source, and no duplicated envelope fields.
 - Partial enrichment (§28): user-only missing fields are published with `enrichmentStatus=PARTIAL`
   and a `missingFields` list; a missing **filter** field makes the filter uncomputable → the whole
   message is routed to the enrichment DLQ (conservative — never silently treats the filter as false).

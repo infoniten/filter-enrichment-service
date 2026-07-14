@@ -73,18 +73,19 @@ class MessageProcessorTest {
     void objectMatched_publishesWithMatchedSubscriptionIds() {
         register("sub-1", "FxSpotForwardTrade", List.of("Trade.counterparty.name"),
                 "portfolioId==1;Trade.counterparty.code==ACME");
+        // Enrich returns the self-describing object: flat scalars + resolved relations.
         when(enrichClient.enrichObject(eq("FxSpotForwardTrade"), eq(123L), anyList()))
-                .thenReturn(TestFixtures.json("{\"counterparty\":{\"code\":\"ACME\",\"name\":\"ACME BANK\"}}"));
+                .thenReturn(TestFixtures.json(
+                        "{\"portfolioId\":1,\"status\":\"ACTIVE\",\"counterparty\":{\"code\":\"ACME\",\"name\":\"ACME BANK\"}}"));
 
         processor.process("t1", objectMessage());
 
         ArgumentCaptor<JsonNode> out = ArgumentCaptor.forClass(JsonNode.class);
         verify(outputPublisher).publish(eq("123"), out.capture(), any()); // keyed by globalId
         JsonNode published = out.getValue();
-        assertThat(published.get("messageType").asText()).isEqualTo("OBJECT");
         assertThat(published.get("matchedSubscriptionIds")).hasSize(1);
         assertThat(published.get("matchedSubscriptionIds").get(0).asText()).isEqualTo("sub-1");
-        assertThat(published.get("payload").get("counterparty").get("code").asText()).isEqualTo("ACME");
+        assertThat(published.get("object").get("counterparty").get("code").asText()).isEqualTo("ACME");
         assertThat(published.get("metadata").get("enrichmentStatus").asText()).isEqualTo("FULL");
     }
 
@@ -137,16 +138,21 @@ class MessageProcessorTest {
     void beforeAfter_beforeMatchesOnly_recordsBothFlags() {
         register("sub-1", "FxSpotForwardTrade", List.of("Trade.contractId"), "portfolioId==1");
         when(enrichClient.enrichRevisions(eq("FxSpotForwardTrade"), eq(List.of(10L, 11L)), anyList()))
-                .thenReturn(TestFixtures.json("[{\"id\":10,\"contractId\":1},{\"id\":11,\"contractId\":1}]"));
+                .thenReturn(TestFixtures.json(
+                        "[{\"id\":10,\"portfolioId\":1,\"contractId\":1},{\"id\":11,\"portfolioId\":2,\"contractId\":1}]"));
 
         processor.process("t1", beforeAfterMessage());
 
         ArgumentCaptor<JsonNode> out = ArgumentCaptor.forClass(JsonNode.class);
         verify(outputPublisher).publish(eq("123"), out.capture(), any()); // keyed by globalId
-        JsonNode m = out.getValue().get("subscriptionMatches").get(0);
+        JsonNode published = out.getValue();
+        JsonNode m = published.get("subscriptionMatches").get(0);
         assertThat(m.get("subscriptionId").asText()).isEqualTo("sub-1");
         assertThat(m.get("beforeMatched").asBoolean()).isTrue();
         assertThat(m.get("afterMatched").asBoolean()).isFalse();
+        // before/after carry the enriched objects directly (no wrapper).
+        assertThat(published.get("before").get("portfolioId").asInt()).isEqualTo(1);
+        assertThat(published.get("after").get("portfolioId").asInt()).isEqualTo(2);
     }
 
     @Test

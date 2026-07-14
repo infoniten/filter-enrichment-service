@@ -14,7 +14,6 @@ import com.example.filterenrichment.metamodel.MetamodelHolder;
 import com.example.filterenrichment.metrics.Metrics;
 import com.example.filterenrichment.registry.CompiledSubscription;
 import com.example.filterenrichment.registry.SubscriptionRegistry;
-import com.example.filterenrichment.util.JsonMerge;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -124,8 +123,9 @@ public class MessageProcessor {
             return;
         }
 
-        JsonNode merged = JsonMerge.deepMerge(flat, enriched);
-        Predicate<String> present = f -> isPresent(merged, f, catalog);
+        // The enriched object is self-describing (carries objectClass/globalId/id/revision/savedAt and
+        // the flat scalars) — evaluate the full filter and emit it directly, no merge with the source.
+        Predicate<String> present = f -> isPresent(enriched, f, catalog);
 
         List<CompiledSubscription> matched = new ArrayList<>();
         for (CompiledSubscription sub : candidates) {
@@ -134,7 +134,7 @@ public class MessageProcessor {
                         "filter field missing after enrichment for " + sub.subscriptionId());
                 return; // §28.6: cannot compute filter -> DLQ
             }
-            if (sub.filter().matches(merged)) {
+            if (sub.filter().matches(enriched)) {
                 matched.add(sub);
             }
         }
@@ -145,22 +145,12 @@ public class MessageProcessor {
         metrics.matched(matched.size());
 
         List<String> missing = missingFields(requiredFields, present);
-        EnrichmentStatus status = missing.isEmpty() ? EnrichmentStatus.FULL : EnrichmentStatus.PARTIAL;
-        if (status == EnrichmentStatus.PARTIAL) {
-            metrics.partial();
-        }
+        EnrichmentStatus status = statusOf(missing);
 
         ObjectNode out = mapper.createObjectNode();
-        out.put("messageType", "OBJECT");
-        out.put("sourceEventId", msg.sourceEventId());
-        out.put("objectClass", msg.objectClass());
-        out.put("objectId", msg.objectId());
-        putLong(out, "globalId", msg.globalId());
-        putLong(out, "revisionId", msg.revisionId());
-        out.put("savedAt", msg.savedAt());
         ArrayNode ids = out.putArray("matchedSubscriptionIds");
         matched.forEach(s -> ids.add(s.subscriptionId()));
-        out.set("payload", merged);
+        out.set("object", enriched);
         out.set("metadata", metadata(status, missing));
 
         outputPublisher.publish(msg.objectId(), out, value);
@@ -203,8 +193,8 @@ public class MessageProcessor {
             return;
         }
 
-        JsonNode enrichedBefore = JsonMerge.deepMerge(flatBefore, enrichedByRevision.get(beforeRev));
-        JsonNode enrichedAfter = JsonMerge.deepMerge(flatAfter, enrichedByRevision.get(afterRev));
+        JsonNode enrichedBefore = enrichedByRevision.get(beforeRev);
+        JsonNode enrichedAfter = enrichedByRevision.get(afterRev);
         Predicate<String> presentBoth = f ->
                 isPresent(enrichedBefore, f, catalog) && isPresent(enrichedAfter, f, catalog);
 
@@ -228,17 +218,9 @@ public class MessageProcessor {
         metrics.matched(matches.size());
 
         List<String> missing = missingFields(requiredFields, presentBoth);
-        EnrichmentStatus status = missing.isEmpty() ? EnrichmentStatus.FULL : EnrichmentStatus.PARTIAL;
-        if (status == EnrichmentStatus.PARTIAL) {
-            metrics.partial();
-        }
+        EnrichmentStatus status = statusOf(missing);
 
         ObjectNode out = mapper.createObjectNode();
-        out.put("messageType", "BEFORE_AFTER");
-        out.put("sourceEventId", msg.sourceEventId());
-        out.put("objectClass", msg.objectClass());
-        out.put("objectId", msg.objectId());
-        out.put("savedAt", msg.savedAt());
         ArrayNode matchArray = out.putArray("subscriptionMatches");
         for (SubscriptionMatch m : matches) {
             ObjectNode mn = matchArray.addObject();
@@ -246,8 +228,9 @@ public class MessageProcessor {
             mn.put("beforeMatched", m.beforeMatched());
             mn.put("afterMatched", m.afterMatched());
         }
-        out.set("before", version(msg.before().globalId(), beforeRev, enrichedBefore));
-        out.set("after", version(msg.after().globalId(), afterRev, enrichedAfter));
+        // The enriched before/after objects are emitted as-is (each already carries its ids/savedAt).
+        out.set("before", enrichedBefore);
+        out.set("after", enrichedAfter);
         out.set("metadata", metadata(status, missing));
 
         outputPublisher.publish(msg.objectId(), out, value);
@@ -290,6 +273,14 @@ public class MessageProcessor {
         return JsonPaths.readScalar(payload, segments) != null;
     }
 
+    private EnrichmentStatus statusOf(List<String> missing) {
+        if (missing.isEmpty()) {
+            return EnrichmentStatus.FULL;
+        }
+        metrics.partial();
+        return EnrichmentStatus.PARTIAL;
+    }
+
     private ObjectNode metadata(EnrichmentStatus status, List<String> missing) {
         ObjectNode meta = mapper.createObjectNode();
         meta.put("enrichmentStatus", status.name());
@@ -299,21 +290,5 @@ public class MessageProcessor {
             missing.forEach(mf::add);
         }
         return meta;
-    }
-
-    private ObjectNode version(Long globalId, long revisionId, JsonNode payload) {
-        ObjectNode node = mapper.createObjectNode();
-        putLong(node, "globalId", globalId);
-        node.put("revisionId", revisionId);
-        node.set("payload", payload);
-        return node;
-    }
-
-    private static void putLong(ObjectNode node, String field, Long v) {
-        if (v == null) {
-            node.putNull(field);
-        } else {
-            node.put(field, v.longValue());
-        }
     }
 }
