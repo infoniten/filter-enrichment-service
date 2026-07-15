@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * Exposes the spec's probe paths {@code /health/live} and {@code /health/ready} (§34), backed by the
+ * Exposes the spec's probe paths {@code /health/live} and {@code /health/ready}, backed by the
  * actuator liveness / readiness health groups.
  */
 @RestController

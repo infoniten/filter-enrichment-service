@@ -6,7 +6,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-/** Readiness contributor {@code subscriptions} (§34): UP once the runtime registry is loaded. */
+/** Readiness contributor {@code subscriptions}: UP once the runtime registry is loaded. */
 @Component("subscriptions")
 public class SubscriptionsHealthIndicator implements HealthIndicator {
 

@@ -14,8 +14,8 @@ import java.util.Set;
 
 /**
  * Compiles a {@link RuntimeSubscription} into a {@link CompiledSubscription}: resolves the target
- * class, computes the referenced classes (for candidacy), the required output fields (§19) and the
- * compiled RSQL filter (§8).
+ * class, computes the referenced classes (for candidacy), the required output fields and the
+ * compiled RSQL filter.
  */
 @Component
 public class SubscriptionCompiler {

@@ -8,9 +8,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Startup sequence (§6): load the domain model from the Enrich Service, then load and compile the
+ * Startup sequence: load the domain model from the Enrich Service, then load and compile the
  * runtime subscriptions from Redis. Best-effort: if a dependency is not yet reachable the pod stays
- * up but reports not-ready (§34) until it is.
+ * up but reports not-ready until it is.
  */
 @Component
 public class RegistryStartupLoader {

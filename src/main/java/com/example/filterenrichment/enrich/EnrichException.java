@@ -1,10 +1,10 @@
 package com.example.filterenrichment.enrich;
 
 /**
- * Failure of an Object Enrich Service call (§27). The {@link Kind} drives handling: RETRYABLE errors
+ * Failure of an Object Enrich Service call. The {@link Kind} drives handling: RETRYABLE errors
  * (429/502/503/504, timeouts, connection reset, circuit open) are retried with backoff; NOT_FOUND
  * (404) and NON_RETRYABLE (400 / invalid outputField / malformed) are not retried. When retries are
- * exhausted the message is routed to the Enrichment DLQ (§29).
+ * exhausted the message is routed to the Enrichment DLQ.
  */
 public class EnrichException extends RuntimeException {
 

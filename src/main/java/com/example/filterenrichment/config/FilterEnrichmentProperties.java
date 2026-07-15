@@ -4,9 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * All service configuration, externalized via env / ConfigMap. Grouped by concern: input/output
- * Kafka topics and DLQs (§24/§25/§29), Redis runtime-subscription keys (§5/§6), the Object Enrich
- * Service HTTP client (§7/§12/§16/§33), retry (§27), backpressure (§31) and the Subscription
- * Service internal API used to fail subscriptions with uncompilable filters (§8).
+ * Kafka topics and DLQs, Redis runtime-subscription keys, the Object Enrich
+ * Service HTTP client, retry, backpressure and the Subscription
+ * Service internal API used to fail subscriptions with uncompilable filters.
  */
 @ConfigurationProperties(prefix = "filter-enrichment")
 public class FilterEnrichmentProperties {
@@ -54,12 +54,12 @@ public class FilterEnrichmentProperties {
     }
 
     public static class Kafka {
-        /** Source objects topic (§24). */
+        /** Source objects topic. */
         private String inputTopic = "objects.flat";
-        /** Shared enriched objects topic (§25). */
+        /** Shared enriched objects topic. */
         private String outputTopic = "objects.enriched";
         private String consumerGroup = "filter-enrichment-service";
-        /** Listener container concurrency; effective parallelism is capped by input partitions (§32). */
+        /** Listener container concurrency; effective parallelism is capped by input partitions. */
         private int concurrency = 3;
         private final Dlq dlq = new Dlq();
 
@@ -99,7 +99,7 @@ public class FilterEnrichmentProperties {
             return dlq;
         }
 
-        /** The three dead-letter queues (§29). */
+        /** The three dead-letter queues. */
         public static class Dlq {
             private String input = "filter-enrichment.input.dlq";
             private String enrichment = "filter-enrichment.enrichment.dlq";
@@ -161,7 +161,7 @@ public class FilterEnrichmentProperties {
         }
     }
 
-    /** Object Enrich Service: metadata (§7) + enrichment endpoints (§12/§16), pooled client (§33). */
+    /** Object Enrich Service: metadata + enrichment endpoints, pooled client. */
     public static class Enrich {
         private String baseUrl = "http://object-enrich-service:8080";
         private String domainConfigPath = "/api/config/domain";
@@ -268,7 +268,7 @@ public class FilterEnrichmentProperties {
         private long initialBackoffMs = 200;
         private long maxBackoffMs = 5_000;
         private double multiplier = 2.0;
-        /** Random jitter added to each backoff, as a fraction of the interval (§33). */
+        /** Random jitter added to each backoff, as a fraction of the interval. */
         private double jitter = 0.3;
 
         public int getMaxAttempts() {
@@ -312,7 +312,7 @@ public class FilterEnrichmentProperties {
         }
     }
 
-    /** Bounded concurrency so the pod never accumulates unbounded work (§31). */
+    /** Bounded concurrency so the pod never accumulates unbounded work. */
     public static class Backpressure {
         private int maxConcurrentHttpRequests = 32;
         /** How long a worker waits for an HTTP permit before partitions are paused. */

@@ -1,4 +1,4 @@
-# Pods are capped by the input topic's partition count (§32): keep replicaCount <= partitions.
+# Pods are capped by the input topic's partition count: keep replicaCount <= partitions.
 replicaCount: 3
 
 image:
@@ -18,7 +18,7 @@ resources:
     cpu: "1"
     memory: 1Gi
 
-# Upstream connectivity (§7/§24/§25) — override per environment.
+# Upstream connectivity — override per environment.
 config:
   kafkaBootstrap: "kafka:9092"
   redisHost: "redis"

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
-/** Readiness contributor {@code kafkaProducer} (§34): UP when the Kafka cluster is reachable. */
+/** Readiness contributor {@code kafkaProducer}: UP when the Kafka cluster is reachable. */
 @Component("kafkaProducer")
 public class KafkaProducerHealthIndicator implements HealthIndicator {
 

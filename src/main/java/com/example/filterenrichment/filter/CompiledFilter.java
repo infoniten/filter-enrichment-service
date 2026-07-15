@@ -3,12 +3,12 @@ package com.example.filterenrichment.filter;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
- * A subscription filter compiled once (§8) into two evaluators over a JSON payload:
+ * A subscription filter compiled once into two evaluators over a JSON payload:
  * <ul>
  *   <li>{@link #matches(JsonNode)} — the full boolean filter, evaluated on the <em>enriched</em>
- *       object (§11/§18);</li>
+ * object;</li>
  *   <li>{@link #preMatch(JsonNode)} — the Kleene tri-state pre-filter, evaluated on the <em>flat</em>
- *       input payload to cheaply exclude non-candidates without enrichment (§11/§15).</li>
+ * input payload to cheaply exclude non-candidates without enrichment.</li>
  * </ul>
  */
 public final class CompiledFilter {

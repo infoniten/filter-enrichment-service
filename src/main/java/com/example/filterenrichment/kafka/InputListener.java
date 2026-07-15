@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Consumes the source objects topic (§24). Records are keyed by {@code objectId} so all versions of
+ * Consumes the source objects topic. Records are keyed by {@code objectId} so all versions of
  * an object land on one partition and are processed in order. The offset is committed only after the
- * record is fully handled (published / dropped / DLQ'd) — at-least-once (§30).
+ * record is fully handled (published / dropped / DLQ'd) — at-least-once.
  */
 @Component
 public class InputListener {

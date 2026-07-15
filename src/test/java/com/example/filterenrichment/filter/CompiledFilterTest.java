@@ -24,7 +24,7 @@ class CompiledFilterTest {
         CompiledFilter f = compiler.compile("portfolioId==1", catalog);
         assertThat(f.preMatch(TestFixtures.json("{\"portfolioId\":1}"))).isEqualTo(Tri.TRUE);
         assertThat(f.preMatch(TestFixtures.json("{\"portfolioId\":2}"))).isEqualTo(Tri.FALSE);
-        // Absent in flat payload -> undecidable (§15).
+        // Absent in flat payload -> undecidable.
         assertThat(f.preMatch(TestFixtures.json("{}"))).isEqualTo(Tri.UNKNOWN);
     }
 

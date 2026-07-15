@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Routes unprocessable records to the three dead-letter queues (§29): input (bad message), enrichment
+ * Routes unprocessable records to the three dead-letter queues: input (bad message), enrichment
  * (enrich failed / revision missing / filter not computable) and output (serialize / publish failed).
  * The original bytes are preserved with an {@code error-reason} header. A DLQ write is retried; if it
- * ultimately fails the exception propagates so the record is redelivered (at-least-once, §30).
+ * ultimately fails the exception propagates so the record is redelivered (at-least-once).
  */
 @Component
 public class DlqPublisher {
@@ -63,7 +63,7 @@ public class DlqPublisher {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("interrupted publishing to DLQ " + topic, e);
         } catch (Exception e) {
-            // Let it propagate: the input offset is not committed and the record is redelivered (§30).
+            // Let it propagate: the input offset is not committed and the record is redelivered.
             throw new IllegalStateException("failed to publish to DLQ " + topic, e);
         }
         log.warn("Routed record (key={}) to DLQ {}: {}", key, topic, reason);

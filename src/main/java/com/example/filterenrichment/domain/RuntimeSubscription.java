@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Runtime configuration of a subscription as stored by the Subscription Service in Redis under
- * {@code sub:{subscriptionId}} (§5.1). Only {@code status == ACTIVE} subscriptions are used; the
+ * {@code sub:{subscriptionId}}. Only {@code status == ACTIVE} subscriptions are used; the
  * service never touches Postgres.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

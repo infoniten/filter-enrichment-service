@@ -7,7 +7,7 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
 /**
- * Shared exponential-backoff-with-jitter retry policy (§33) used by the enrich client and the
+ * Shared exponential-backoff-with-jitter retry policy used by the enrich client and the
  * internal Subscription API. {@link ExponentialRandomBackOffPolicy} multiplies the interval and adds
  * random jitter on each attempt to avoid synchronized retries.
  */

@@ -5,7 +5,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-/** Readiness contributor {@code metadata} (§34): UP once the domain model is loaded. */
+/** Readiness contributor {@code metadata}: UP once the domain model is loaded. */
 @Component("metadata")
 public class MetadataHealthIndicator implements HealthIndicator {
 

@@ -19,7 +19,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 
 /**
- * Object Enrich Service HTTP client (§33): connection pooling + keep-alive, configurable
+ * Object Enrich Service HTTP client: connection pooling + keep-alive, configurable
  * connect/read timeouts and pool size, plus a shared circuit breaker and bulkhead used
  * programmatically by the enrich client to bound concurrency and fail fast when the upstream is down.
  */

@@ -1,7 +1,7 @@
 package com.example.filterenrichment.enrich;
 
 /**
- * Signals that the enrich concurrency bulkhead is saturated (§31). The message is not failed or
+ * Signals that the enrich concurrency bulkhead is saturated. The message is not failed or
  * DLQ'd: processing is aborted so the record is redelivered, and the consumer applies backpressure
  * (pauses partitions) until capacity frees up.
  */

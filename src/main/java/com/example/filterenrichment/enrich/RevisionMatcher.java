@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Maps a {@code POST /revisions} response back to version ids (§17). The version id is the object's
+ * Maps a {@code POST /revisions} response back to version ids. The version id is the object's
  * {@code id}. Does not rely on element order; verifies there are no duplicates and that every
- * expected id is present. Tolerates the two plausible response shapes (§37): an array of
+ * expected id is present. Tolerates the two plausible response shapes: an array of
  * {@code {id, ...payload}} objects, or an object keyed by id. Throws {@link EnrichException}
  * (NON_RETRYABLE) on any mismatch, which routes the message to the Enrichment DLQ.
  */

@@ -23,9 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka wiring. The producer is idempotent with {@code acks=all} and producer-level batching (§20);
- * the consumer commits per record (at-least-once, §30) and never auto-commits so the application can
- * pause/resume partitions for backpressure (§31).
+ * Kafka wiring. The producer is idempotent with {@code acks=all} and producer-level batching;
+ * the consumer commits per record (at-least-once) and never auto-commits so the application can
+ * pause/resume partitions for backpressure.
  */
 @Configuration
 public class KafkaConfig {
@@ -59,7 +59,7 @@ public class KafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.setConcurrency(props.getKafka().getConcurrency());
-        // Commit offset after each record is fully processed (published / no-match / DLQ) — §30.
+        // Commit offset after each record is fully processed (published / no-match / DLQ) —.
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
         return factory;
     }

@@ -33,10 +33,10 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 
 /**
- * Core pipeline (§11/§14/§18): parse & validate the input record, pre-match candidate subscriptions
+ * Core pipeline: parse & validate the input record, pre-match candidate subscriptions
  * on the flat payload, enrich once via the Object Enrich Service, apply full filters on the enriched
  * data, and publish a single matched output record — or drop / DLQ. Never treats a filter as false
- * merely because a field is missing (§28): if a filter cannot be computed the message goes to the
+ * merely because a field is missing: if a filter cannot be computed the message goes to the
  * Enrichment DLQ.
  */
 @Component
@@ -97,7 +97,7 @@ public class MessageProcessor {
         }
     }
 
-    // ==================== OBJECT (§11/§12) ====================
+    // ==================== OBJECT ====================
 
     private void processObject(String key, byte[] value, InputMessage msg,
                                MetamodelCatalog catalog, String objectCanonical) {
@@ -131,7 +131,7 @@ public class MessageProcessor {
             if (!filterComputable(sub, present)) {
                 dlqPublisher.toEnrichment(key, value,
                         "filter field missing after enrichment for " + sub.subscriptionId());
-                return; // §28.6: cannot compute filter -> DLQ
+                return; // cannot compute filter -> DLQ
             }
             if (sub.filter().matches(enriched)) {
                 matched.add(sub);
@@ -155,14 +155,14 @@ public class MessageProcessor {
         outputPublisher.publish(msg.objectId(), out, value);
     }
 
-    // ==================== BEFORE_AFTER (§14/§16/§18) ====================
+    // ==================== BEFORE_AFTER ====================
 
     private void processBeforeAfter(String key, byte[] value, InputMessage msg,
                                     MetamodelCatalog catalog, String objectCanonical) {
         JsonNode flatBefore = msg.before().payload();
         JsonNode flatAfter = msg.after().payload();
 
-        // Candidate if class matches AND at least one side is not definitely false (§15).
+        // Candidate if class matches AND at least one side is not definitely false.
         List<CompiledSubscription> candidates = registry.all().stream()
                 .filter(s -> s.matchesClass(objectCanonical, catalog))
                 .filter(s -> {
@@ -202,7 +202,7 @@ public class MessageProcessor {
             if (!filterComputable(sub, presentBoth)) {
                 dlqPublisher.toEnrichment(key, value,
                         "filter field missing after enrichment for " + sub.subscriptionId());
-                return; // §28.6
+                return; //
             }
             boolean beforeMatched = sub.filter().matches(enrichedBefore);
             boolean afterMatched = sub.filter().matches(enrichedAfter);

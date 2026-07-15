@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 /**
- * Parses the real source message format into an {@link InputMessage} (§9/§10/§13). The type is
+ * Parses the real source message format into an {@link InputMessage}. The type is
  * inferred from structure (before+after vs a bare object); the flat object is the payload. Any
  * malformed body or missing mandatory field raises {@link InputParseException}, which the processor
  * routes to the input DLQ.

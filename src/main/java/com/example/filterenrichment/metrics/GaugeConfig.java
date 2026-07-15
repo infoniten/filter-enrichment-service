@@ -6,7 +6,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Binds the state gauges (§35): active subscriptions, in-flight enrich requests and paused
+ * Binds the state gauges: active subscriptions, in-flight enrich requests and paused
  * partitions. Kept separate from {@link Metrics} to avoid a bean cycle (these read live component
  * state).
  */

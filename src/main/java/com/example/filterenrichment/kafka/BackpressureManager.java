@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Bounds the number of in-flight enrichment requests (§31). A worker acquires a permit before
+ * Bounds the number of in-flight enrichment requests. A worker acquires a permit before
  * enriching; if none is available within the configured timeout the consumer partitions are paused
  * (stopping further polling) until capacity frees up, then resumed. This keeps memory bounded and
  * applies real backpressure to Kafka rather than accumulating records.

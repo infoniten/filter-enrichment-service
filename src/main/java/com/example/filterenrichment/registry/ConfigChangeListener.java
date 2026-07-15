@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Handles {@code CONFIG_CHANGED} messages on the {@code subscriptions:changes} channel (§6). The
+ * Handles {@code CONFIG_CHANGED} messages on the {@code subscriptions:changes} channel. The
  * message is only a signal: with a {@code subscriptionId} the service re-reads that one subscription;
  * without one it performs a full reload of the runtime configuration.
  */

@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Assembles an immutable {@link MetamodelCatalog} from the Enrich Service domain config (§7).
+ * Assembles an immutable {@link MetamodelCatalog} from the Enrich Service domain config.
  */
 public final class MetamodelCatalogFactory {
 

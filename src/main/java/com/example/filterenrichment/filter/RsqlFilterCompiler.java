@@ -14,10 +14,10 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Compiles a subscription's RSQL filter once (§8) into a {@link CompiledFilter} that can be
+ * Compiles a subscription's RSQL filter once into a {@link CompiledFilter} that can be
  * evaluated both fully (on the enriched object) and as a tri-state pre-filter (on the flat payload).
  * Class-qualified filter paths are validated against the domain model; paths that reference an
- * unknown field or traverse a to-many collection fail compilation (§8 -> subscription FAILED). Bare
+ * unknown field or traverse a to-many collection fail compilation (subscription FAILED). Bare
  * flat selectors ({@code portfolioId}) are accepted as flat scalars.
  */
 @Component
@@ -118,7 +118,7 @@ public class RsqlFilterCompiler {
                 @Override
                 public Tri pre(JsonNode flat) {
                     JsonNode value = JsonPaths.readScalar(flat, segments);
-                    // Absent in the flat payload -> undecidable without enrichment (§15/§28).
+                    // Absent in the flat payload -> undecidable without enrichment.
                     if (value == null) {
                         return Tri.UNKNOWN;
                     }

@@ -35,9 +35,9 @@ Delivery Engine), with its own Docker image, Helm chart, CI and release lifecycl
      (order-independent, both required, no duplicates).
 6. **Filter** the enriched object(s). `BEFORE_AFTER` reports `beforeMatched` / `afterMatched` per
    subscription; a subscription is included if either is true. A filter is never treated as false
-   just because a field is missing (§28): if it cannot be computed the message goes to the
+   just because a field is missing: if it cannot be computed the message goes to the
    **enrichment DLQ**.
-7. **Publish** at most one output record (§21/§22) keyed by `objectId`, or drop if nothing matched.
+7. **Publish** at most one output record keyed by `objectId`, or drop if nothing matched.
 
 ## Input format
 
@@ -94,14 +94,14 @@ that cannot be compiled (unknown field, traverses a to-many collection) fails th
 
 ## Reliability
 
-- **At-least-once** (§30): the input offset is committed only after the record is published, dropped
+- **At-least-once**: the input offset is committed only after the record is published, dropped
   (no candidates / no matches) or written to a DLQ. If even the DLQ write fails, the record is
   redelivered.
 - **Retry**: exponential backoff + jitter on retryable enrich errors (429/502/503/504, timeouts,
   connection reset). `400` / invalid outputField / malformed → non-retryable; `404` → not found.
   After retries a failed enrich → enrichment DLQ.
 - **Circuit breaker + bulkhead** on the Enrich client (resilience4j); pooled keep-alive HTTP.
-- **Backpressure** (§31): a bounded permit pool caps in-flight enrich requests; when saturated the
+- **Backpressure**: a bounded permit pool caps in-flight enrich requests; when saturated the
   consumer pauses its partitions until capacity frees up (`filter_enrichment_paused_partitions`).
 - **DLQs**: `filter-enrichment.input.dlq`, `filter-enrichment.enrichment.dlq`,
   `filter-enrichment.output.dlq`.
@@ -112,7 +112,7 @@ that cannot be compiled (unknown field, traverses a to-many collection) fails th
   metadata, Kafka consumer/producer and the enrich circuit breaker not being OPEN).
 - `GET /actuator/health`, `GET /actuator/prometheus`, `GET /actuator/metrics`.
 
-Metrics are prefixed `filter_enrichment_*` (§35); `subscriptionId` is never used as a label.
+Metrics are prefixed `filter_enrichment_*`; `subscriptionId` is never used as a label.
 
 ## Configuration
 
@@ -147,7 +147,7 @@ required-fields union, revision matching (array vs object shapes, missing/duplic
 Integration (embedded Kafka + Redis + a mock Enrich Service) and contract tests against the real
 `/api/config/domain`, `GET .../{objectClass}` and `POST .../revisions` are the recommended next
 layer — the DTO parsers are deliberately lenient (`@JsonIgnoreProperties`) and `RevisionMatcher`
-tolerates both plausible `/revisions` response shapes (§37).
+tolerates both plausible `/revisions` response shapes.
 
 ## Design notes / assumptions
 
@@ -156,7 +156,7 @@ tolerates both plausible `/revisions` response shapes (§37).
 - The enriched object returned by the Enrich Service is self-describing (carries `objectClass`,
   `globalId`, `id`, `revision`, `savedAt` plus flat scalars and resolved relations), so it is emitted
   as-is — no merge with the raw source, and no duplicated envelope fields.
-- Partial enrichment (§28): user-only missing fields are published with `enrichmentStatus=PARTIAL`
+- Partial enrichment: user-only missing fields are published with `enrichmentStatus=PARTIAL`
   and a `missingFields` list; a missing **filter** field makes the filter uncomputable → the whole
   message is routed to the enrichment DLQ (conservative — never silently treats the filter as false).
 - Out of scope (V1): initialization messages, micro-batching, per-subscriber projection/topics,

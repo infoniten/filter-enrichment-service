@@ -8,7 +8,7 @@ import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Component;
 
 /**
- * All service metrics (§35). Never uses {@code subscriptionId} as a label (unbounded cardinality).
+ * All service metrics. Never uses {@code subscriptionId} as a label (unbounded cardinality).
  * Gauges for active subscriptions / in-flight / paused partitions are bound at their source
  * (registry, backpressure manager, listener) rather than here.
  */
@@ -52,12 +52,12 @@ public class Metrics {
         this.configReload = Counter.builder("filter_enrichment_config_reload_total").register(registry);
     }
 
-    /** One record received (§35 {@code filter_enrichment_input_total}), before type is known. */
+    /** One record received ({@code filter_enrichment_input_total}), before type is known. */
     public void inputReceived() {
         input.increment();
     }
 
-    /** Record counted by its resolved type (§35 {@code filter_enrichment_input_by_type_total}). */
+    /** Record counted by its resolved type ({@code filter_enrichment_input_by_type_total}). */
     public void inputType(MessageType type) {
         if (type == MessageType.BEFORE_AFTER) {
             inputBeforeAfter.increment();

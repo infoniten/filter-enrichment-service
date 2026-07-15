@@ -7,7 +7,7 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 /**
- * Readiness contributor {@code enrichService} (§34): DOWN only while the circuit breaker is OPEN
+ * Readiness contributor {@code enrichService}: DOWN only while the circuit breaker is OPEN
  * (upstream considered unavailable); UP otherwise, including HALF_OPEN (probing).
  */
 @Component("enrichService")

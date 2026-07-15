@@ -6,7 +6,7 @@ import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-/** Readiness contributor {@code kafkaConsumer} (§34): UP when the listener containers are running. */
+/** Readiness contributor {@code kafkaConsumer}: UP when the listener containers are running. */
 @Component("kafkaConsumer")
 public class KafkaConsumerHealthIndicator implements HealthIndicator {
 

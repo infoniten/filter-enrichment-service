@@ -1,7 +1,7 @@
 package com.example.filterenrichment.filter;
 
 /**
- * Thrown when a subscription's RSQL filter cannot be compiled (§8): unparseable, references an
+ * Thrown when a subscription's RSQL filter cannot be compiled: unparseable, references an
  * unknown field, or traverses a collection. {@link #getReason()} is the machine code reported to the
  * Subscription Service {@code /internal/subscriptions/{id}/fail} endpoint.
  */

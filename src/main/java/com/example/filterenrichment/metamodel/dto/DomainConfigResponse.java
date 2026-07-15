@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Subset of the Object Enrich Service {@code GET /api/config/domain} response needed here (§7):
+ * Subset of the Object Enrich Service {@code GET /api/config/domain} response needed here:
  * classes (sourceValue &lt;-&gt; canonical), declared scalar fields per class, the class hierarchy,
  * and relations (with type, to detect to-many collections that filters may not traverse).
  *
  * <p>Unknown properties are ignored so the contract can evolve; the exact response shape is pinned
- * by a contract test (§37).
+ * by a contract test.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record DomainConfigResponse(

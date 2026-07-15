@@ -20,10 +20,10 @@ management:
         enabled: true
       show-details: always
       group:
-        # /health/ready — serve traffic only when all upstreams and local state are ready (§34)
+        # /health/ready — serve traffic only when all upstreams and local state are ready
         readiness:
           include: readinessState,redis,subscriptions,metadata,kafkaConsumer,kafkaProducer,enrichService
-        # /health/live — process is alive (§34)
+        # /health/live — process is alive
         liveness:
           include: livenessState
   health:

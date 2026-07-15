@@ -12,9 +12,9 @@ import org.springframework.web.client.RestClientException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Loads and holds the domain model from the Object Enrich Service (§7). Metadata is fetched at
+ * Loads and holds the domain model from the Object Enrich Service. Metadata is fetched at
  * startup and after config reloads only — never per input message — and kept in memory. Best-effort
- * at startup: if the Enrich Service is not yet reachable the pod stays up but reports not-ready (§34)
+ * at startup: if the Enrich Service is not yet reachable the pod stays up but reports not-ready
  * until a load succeeds.
  */
 @Component

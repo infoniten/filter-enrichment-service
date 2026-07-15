@@ -11,10 +11,10 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Publishes the enriched, matched result to the shared Enriched Objects topic (§25), keyed by
+ * Publishes the enriched, matched result to the shared Enriched Objects topic, keyed by
  * {@code objectId} so all versions of an object stay on one partition. One input record yields at
  * most one output record. Serialization failures and publish failures (after retries) go to the
- * output DLQ (§29) and the record is still acked (§30).
+ * output DLQ and the record is still acked.
  */
 @Component
 public class OutputPublisher {

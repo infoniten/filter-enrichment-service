@@ -21,7 +21,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 /**
- * Client for the Object Enrich Service (§12/§16/§27/§33). One HTTP call per input record (no
+ * Client for the Object Enrich Service. One HTTP call per input record (no
  * micro-batching): {@code GET .../{objectClass}} for a single object, {@code POST .../revisions} for
  * a before/after pair. Calls are guarded by a bulkhead (bounded concurrency), a circuit breaker
  * (fail-fast when the upstream is down), retried with exponential backoff + jitter, and pooled.
@@ -49,7 +49,7 @@ public class EnrichClient {
         this.retry = props.getRetry();
     }
 
-    /** Enriches a single object by globalId (§12). Returns the enriched payload. */
+    /** Enriches a single object by globalId. Returns the enriched payload. */
     public JsonNode enrichObject(String objectClass, long globalId, List<String> outputFields) {
         metrics.getRequest();
         return execute(() -> restClient.get()
@@ -62,7 +62,7 @@ public class EnrichClient {
                 .body(JsonNode.class));
     }
 
-    /** Enriches a before/after pair in one request (§16). Returns the raw response (array of versions). */
+    /** Enriches a before/after pair in one request. Returns the raw response (array of versions). */
     public JsonNode enrichRevisions(String objectClass, List<Long> revisionIds, List<String> outputFields) {
         metrics.revisionRequest();
         return execute(() -> restClient.post()
@@ -118,7 +118,7 @@ public class EnrichClient {
             metrics.httpRequest("error");
             throw mapStatus(e);
         } catch (ResourceAccessException e) {
-            // connection/read timeout, connection reset (§27 retryable)
+            // connection/read timeout, connection reset (retryable)
             metrics.httpRequest("error");
             throw new EnrichException(EnrichException.Kind.RETRYABLE, "enrich I/O error: " + e.getMessage(), e);
         } finally {

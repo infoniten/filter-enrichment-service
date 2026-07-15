@@ -1,7 +1,7 @@
 package com.example.filterenrichment.filter;
 
 /**
- * Three-valued (Kleene) logic used for pre-matching against the flat input payload (§11/§15): a
+ * Three-valued (Kleene) logic used for pre-matching against the flat input payload: a
  * comparison whose field is present in the flat payload evaluates to {@link #TRUE}/{@link #FALSE};
  * one whose field is only available after enrichment is {@link #UNKNOWN}. A subscription is excluded
  * as a non-candidate only when its pre-match is definitively {@code FALSE}.

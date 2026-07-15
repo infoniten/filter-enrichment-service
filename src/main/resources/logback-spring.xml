@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Structured logging (§36). Each line carries the correlation context via MDC:
+  Structured logging. Each line carries the correlation context via MDC:
   traceId, messageType, objectClass, objectId, revision ids, candidate/matched
   counts, processingStage and errorCode. Full object payloads are never logged by default.
 -->

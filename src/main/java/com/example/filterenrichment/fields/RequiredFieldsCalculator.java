@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 /**
- * Computes the {@code outputField} set required to serve a subscription (§19):
+ * Computes the {@code outputField} set required to serve a subscription:
  * {@code union(subscription.fields) + union(class-qualified fields referenced by the filter)}, with
  * duplicates removed and a deterministic (lexicographic) order. A field used only by the filter is
  * still fetched so the filter can be evaluated on enriched data.

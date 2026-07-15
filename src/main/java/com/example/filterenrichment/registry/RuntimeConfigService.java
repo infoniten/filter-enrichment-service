@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Loads and refreshes the compiled runtime subscription registry from Redis (§5/§6/§8). The service
+ * Loads and refreshes the compiled runtime subscription registry from Redis. The service
  * only ever reads Redis — never Postgres. A full {@link #loadAll()} happens at startup and on a
  * signal with no {@code subscriptionId}; {@link #refreshOne(String)} handles a single change.
  */
@@ -67,7 +67,7 @@ public class RuntimeConfigService {
     }
 
     /**
-     * Reloads and recompiles a single subscription's config (§6/§8). Returns true if it is now
+     * Reloads and recompiles a single subscription's config. Returns true if it is now
      * served (present in the registry).
      */
     public boolean refreshOne(String subscriptionId) {
@@ -82,14 +82,14 @@ public class RuntimeConfigService {
             return false;
         }
         if (!sub.isActive() || !sub.hasEngine(props.getServedEngine())) {
-            registry.remove(subscriptionId); // only ACTIVE + served engine (§5)
+            registry.remove(subscriptionId); // only ACTIVE + served engine
             return false;
         }
         try {
             registry.put(compiler.compile(sub, metamodel.get()));
             return true;
         } catch (FilterCompileException e) {
-            // §8: filter cannot be compiled -> fail the subscription and drop it from this pod
+            // filter cannot be compiled -> fail the subscription and drop it from this pod
             log.warn("Filter compilation failed for {}: {}", subscriptionId, e.getMessage());
             registry.remove(subscriptionId);
             failClient.fail(subscriptionId, e.getReason(), e.getMessage());

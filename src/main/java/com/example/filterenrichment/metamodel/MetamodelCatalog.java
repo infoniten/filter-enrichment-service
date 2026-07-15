@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Immutable, resolved view of the domain model (§7) used to:
+ * Immutable, resolved view of the domain model used to:
  * <ul>
  *   <li>normalize an {@code objectClass} token to its canonical name;</li>
  *   <li>decide candidate subscriptions (a subscription defined on class S matches an object of
@@ -81,7 +81,7 @@ public final class MetamodelCatalog {
     /**
      * Classifies a filter path (used at compile time). Filters are supported only for
      * {@link PathKind#SCALAR}; {@link PathKind#TRAVERSES_COLLECTION} and {@link PathKind#UNKNOWN}
-     * fail the subscription (§8).
+     * fail the subscription.
      */
     public PathKind classifyFilterPath(String rawPath) {
         String[] parts = rawPath.split("\\.");

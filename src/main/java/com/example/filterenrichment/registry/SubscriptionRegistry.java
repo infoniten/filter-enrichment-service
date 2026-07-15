@@ -9,8 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * In-memory registry of served, compiled subscriptions held by each pod (§32). Populated at startup
- * and kept current via Redis Pub/Sub (§6). Filters are compiled once, on load/change (§8).
+ * In-memory registry of served, compiled subscriptions held by each pod. Populated at startup
+ * and kept current via Redis Pub/Sub. Filters are compiled once, on load/change.
  */
 @Component
 public class SubscriptionRegistry {

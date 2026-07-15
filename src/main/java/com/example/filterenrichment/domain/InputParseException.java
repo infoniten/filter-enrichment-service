@@ -1,7 +1,7 @@
 package com.example.filterenrichment.domain;
 
 /**
- * Thrown when an input record is malformed or missing a mandatory field (§29 input DLQ). The message
+ * Thrown when an input record is malformed or missing a mandatory field (input DLQ). The message
  * is the DLQ reason.
  */
 public class InputParseException extends RuntimeException {

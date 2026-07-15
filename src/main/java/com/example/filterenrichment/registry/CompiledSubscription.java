@@ -8,7 +8,7 @@ import java.util.Set;
 
 /**
  * A served subscription with its filter pre-compiled and its required output fields pre-computed
- * (§8/§19). Held in memory by each pod; recompiled only on load / config change.
+ *. Held in memory by each pod; recompiled only on load / config change.
  *
  * @param objectCanonical      canonical class the subscription targets
  * @param referencedCanonicals canonical classes referenced by fields + filter (for candidacy)
@@ -27,7 +27,7 @@ public record CompiledSubscription(
 ) {
 
     /**
-     * Class-level candidacy (§11): the object's class must be the subscription's class or a subtype,
+     * Class-level candidacy: the object's class must be the subscription's class or a subtype,
      * and every referenced class must be an ancestor-or-self of the object's class.
      */
     public boolean matchesClass(String objectCanonical, MetamodelCatalog catalog) {

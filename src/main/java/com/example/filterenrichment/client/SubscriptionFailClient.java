@@ -12,7 +12,7 @@ import java.util.Map;
 
 /**
  * Calls the Subscription Service internal API to move a subscription to FAILED when its filter
- * cannot be compiled (§8). Retried with exponential backoff (§33); best-effort — the subscription is
+ * cannot be compiled. Retried with exponential backoff; best-effort — the subscription is
  * already excluded from this pod's registry regardless.
  */
 @Component

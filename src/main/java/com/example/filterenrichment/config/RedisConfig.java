@@ -9,7 +9,7 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.Topic;
 
 /**
- * Wires the Redis Pub/Sub listener on the {@code subscriptions:changes} channel (§6).
+ * Wires the Redis Pub/Sub listener on the {@code subscriptions:changes} channel.
  */
 @Configuration
 public class RedisConfig {
