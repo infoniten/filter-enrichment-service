@@ -98,6 +98,12 @@ public class RuntimeConfigService {
             // Metadata not loaded yet (transient) — do not fail the subscription; retry on next load
             log.warn("Cannot compile {} yet: {}", subscriptionId, e.getMessage());
             return false;
+        } catch (Exception e) {
+            // Backstop: one malformed subscription must not fail the whole load nor keep the pod
+            // not-ready. Skip it and continue with the rest.
+            log.warn("Skipping subscription {} due to unexpected error: {}", subscriptionId, e.toString());
+            registry.remove(subscriptionId);
+            return false;
         }
     }
 
