@@ -78,7 +78,8 @@ only on `PARTIAL`.
 
 ## Metadata & filter compilation
 
-The domain model is loaded once from `GET /api/config/domain` at startup (and on config reload) and
+The domain model (metamodel) is loaded once from DataDictionary
+`GET /api/search-service/metadata/v3` at startup (and on config reload) and
 kept **in memory** — never fetched per message. RSQL filters are compiled once (startup / on
 `CONFIG_CHANGED` / after metadata reload) into a full predicate + a tri-state pre-filter. A filter
 that cannot be compiled (unknown field, traverses a to-many collection) fails the subscription via
@@ -145,14 +146,15 @@ required-fields union, revision matching (array vs object shapes, missing/duplic
 `beforeMatched || afterMatched`, enrichment-DLQ on failure/missing revision).
 
 Integration (embedded Kafka + Redis + a mock Enrich Service) and contract tests against the real
-`/api/config/domain`, `GET .../{objectClass}` and `POST .../revisions` are the recommended next
-layer — the DTO parsers are deliberately lenient (`@JsonIgnoreProperties`) and `RevisionMatcher`
-tolerates both plausible `/revisions` response shapes.
+DataDictionary `/api/search-service/metadata/v3`, `GET .../{objectClass}` and `POST .../revisions`
+are the recommended next layer — the DTO parsers are deliberately lenient (`@JsonIgnoreProperties`)
+and `RevisionMatcher` tolerates both plausible `/revisions` response shapes.
 
 ## Design notes / assumptions
 
-- `GET /api/config/domain` is modeled on the search-service metadata shape (classes / declared
-  scalar fields / hierarchy / relations); the exact contract should be pinned by a contract test.
+- The metamodel is fetched from DataDictionary `GET /api/search-service/metadata/v3` (classes /
+  declared scalar fields / hierarchy / relations) — the same source `subscription-service` validates
+  against; the exact contract should be pinned by a contract test.
 - The enriched object returned by the Enrich Service is self-describing (carries `objectClass`,
   `globalId`, `id`, `revision`, `savedAt` plus flat scalars and resolved relations), so it is emitted
   as-is — no merge with the raw source, and no duplicated envelope fields.

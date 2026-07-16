@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Subset of the Object Enrich Service {@code GET /api/config/domain} response needed here:
+ * Subset of the DataDictionary {@code GET /api/search-service/metadata/v3} response needed here:
  * classes (sourceValue &lt;-&gt; canonical), declared scalar fields per class, the class hierarchy,
  * and relations (with type, to detect to-many collections that filters may not traverse).
  *
@@ -14,7 +14,7 @@ import java.util.Map;
  * by a contract test.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record DomainConfigResponse(
+public record MetadataResponse(
         List<ClassEntry> classes,
         Map<String, FieldsBlock> fields,
         Hierarchy hierarchy,

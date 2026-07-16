@@ -45,9 +45,15 @@ filter-enrichment:
     channel: ${REDIS_CHANNEL:subscriptions:changes}
     runtime-set-key: ${REDIS_RUNTIME_SET_KEY:subs:runtime}
     config-key-prefix: ${REDIS_CONFIG_KEY_PREFIX:sub:}
+  metamodel:
+    # The metamodel (domain model) is the source of truth in DataDictionary — fetched here at
+    # startup and on config reloads, never per message.
+    base-url: ${DATA_DICTIONARY_URL:http://data-dictionary:8080}
+    metadata-path: ${DATA_DICTIONARY_METADATA_PATH:/api/search-service/metadata/v3}
+    connect-timeout-ms: ${METAMODEL_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${METAMODEL_READ_TIMEOUT_MS:5000}
   enrich:
     base-url: ${ENRICH_SERVICE_URL:http://object-enrich-service:8080}
-    domain-config-path: ${ENRICH_DOMAIN_CONFIG_PATH:/api/config/domain}
     connect-timeout-ms: ${ENRICH_CONNECT_TIMEOUT_MS:2000}
     read-timeout-ms: ${ENRICH_READ_TIMEOUT_MS:5000}
     max-connections: ${ENRICH_MAX_CONNECTIONS:100}

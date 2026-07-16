@@ -13,6 +13,7 @@ public class FilterEnrichmentProperties {
 
     private final Kafka kafka = new Kafka();
     private final Redis redis = new Redis();
+    private final Metamodel metamodel = new Metamodel();
     private final Enrich enrich = new Enrich();
     private final Retry retry = new Retry();
     private final Backpressure backpressure = new Backpressure();
@@ -28,6 +29,10 @@ public class FilterEnrichmentProperties {
 
     public Redis getRedis() {
         return redis;
+    }
+
+    public Metamodel getMetamodel() {
+        return metamodel;
     }
 
     public Enrich getEnrich() {
@@ -166,10 +171,52 @@ public class FilterEnrichmentProperties {
         }
     }
 
-    /** Object Enrich Service: metadata + enrichment endpoints, pooled client. */
+    /**
+     * DataDictionary metadata source: the metamodel is fetched from here at startup and on config
+     * reloads (never per message). Pooled client with its own timeouts.
+     */
+    public static class Metamodel {
+        private String baseUrl = "http://data-dictionary:8080";
+        private String metadataPath = "/api/search-service/metadata/v3";
+        private int connectTimeoutMs = 2000;
+        private int readTimeoutMs = 5000;
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String v) {
+            this.baseUrl = v;
+        }
+
+        public String getMetadataPath() {
+            return metadataPath;
+        }
+
+        public void setMetadataPath(String v) {
+            this.metadataPath = v;
+        }
+
+        public int getConnectTimeoutMs() {
+            return connectTimeoutMs;
+        }
+
+        public void setConnectTimeoutMs(int v) {
+            this.connectTimeoutMs = v;
+        }
+
+        public int getReadTimeoutMs() {
+            return readTimeoutMs;
+        }
+
+        public void setReadTimeoutMs(int v) {
+            this.readTimeoutMs = v;
+        }
+    }
+
+    /** Object Enrich Service: per-object enrichment endpoints, pooled client. */
     public static class Enrich {
         private String baseUrl = "http://object-enrich-service:8080";
-        private String domainConfigPath = "/api/config/domain";
         private int connectTimeoutMs = 2000;
         private int readTimeoutMs = 5000;
         private int maxConnections = 100;
@@ -182,14 +229,6 @@ public class FilterEnrichmentProperties {
 
         public void setBaseUrl(String v) {
             this.baseUrl = v;
-        }
-
-        public String getDomainConfigPath() {
-            return domainConfigPath;
-        }
-
-        public void setDomainConfigPath(String v) {
-            this.domainConfigPath = v;
         }
 
         public int getConnectTimeoutMs() {

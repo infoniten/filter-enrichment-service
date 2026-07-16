@@ -8,6 +8,7 @@ data:
   KAFKA_BOOTSTRAP: {{ .Values.config.kafkaBootstrap | quote }}
   REDIS_HOST: {{ .Values.config.redisHost | quote }}
   REDIS_PORT: {{ .Values.config.redisPort | quote }}
+  DATA_DICTIONARY_URL: {{ .Values.config.dataDictionaryUrl | quote }}
   ENRICH_SERVICE_URL: {{ .Values.config.enrichServiceUrl | quote }}
   SUBSCRIPTION_SERVICE_URL: {{ .Values.config.subscriptionServiceUrl | quote }}
   INPUT_TOPIC: {{ .Values.config.inputTopic | quote }}

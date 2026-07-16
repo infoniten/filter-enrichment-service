@@ -1,7 +1,7 @@
 package com.example.filterenrichment.metamodel;
 
 import com.example.filterenrichment.config.FilterEnrichmentProperties;
-import com.example.filterenrichment.metamodel.dto.DomainConfigResponse;
+import com.example.filterenrichment.metamodel.dto.MetadataResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,10 +12,10 @@ import org.springframework.web.client.RestClientException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Loads and holds the domain model from the Object Enrich Service. Metadata is fetched at
- * startup and after config reloads only — never per input message — and kept in memory. Best-effort
- * at startup: if the Enrich Service is not yet reachable the pod stays up but reports not-ready
- * until a load succeeds.
+ * Loads and holds the domain model from DataDictionary (the metamodel source of truth). Metadata is
+ * fetched at startup and after config reloads only — never per input message — and kept in memory.
+ * Best-effort at startup: if DataDictionary is not yet reachable the pod stays up but reports
+ * not-ready until a load succeeds.
  */
 @Component
 public class MetamodelHolder {
@@ -23,30 +23,31 @@ public class MetamodelHolder {
     private static final Logger log = LoggerFactory.getLogger(MetamodelHolder.class);
 
     private final RestClient restClient;
-    private final FilterEnrichmentProperties.Enrich props;
+    private final FilterEnrichmentProperties.Metamodel props;
     private final AtomicReference<MetamodelCatalog> ref = new AtomicReference<>();
 
-    public MetamodelHolder(@Qualifier("enrichRestClient") RestClient enrichRestClient,
+    public MetamodelHolder(@Qualifier("metamodelRestClient") RestClient metamodelRestClient,
                            FilterEnrichmentProperties props) {
-        this.restClient = enrichRestClient;
-        this.props = props.getEnrich();
+        this.restClient = metamodelRestClient;
+        this.props = props.getMetamodel();
     }
 
     /** Loads the metadata; throws on failure so callers can decide (startup logs, health reports). */
     public MetamodelCatalog load() {
-        DomainConfigResponse domain;
+        MetadataResponse domain;
         try {
-            domain = restClient.get().uri(props.getDomainConfigPath()).retrieve().body(DomainConfigResponse.class);
+            domain = restClient.get().uri(props.getMetadataPath()).retrieve().body(MetadataResponse.class);
         } catch (RestClientException e) {
-            throw new IllegalStateException("failed to fetch domain config from "
-                    + props.getBaseUrl() + props.getDomainConfigPath(), e);
+            throw new IllegalStateException("failed to fetch metamodel from "
+                    + props.getBaseUrl() + props.getMetadataPath(), e);
         }
         if (domain == null || domain.classes() == null || domain.classes().isEmpty()) {
-            throw new IllegalStateException("empty domain config response");
+            throw new IllegalStateException("empty metamodel response from DataDictionary");
         }
         MetamodelCatalog catalog = MetamodelCatalogFactory.build(domain);
         ref.set(catalog);
-        log.info("Loaded domain model: {} classes", catalog.classCount());
+        log.info("Loaded domain model from DataDictionary ({}{}): {} classes",
+                props.getBaseUrl(), props.getMetadataPath(), catalog.classCount());
         return catalog;
     }
 

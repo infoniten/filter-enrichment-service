@@ -23,6 +23,7 @@ config:
   kafkaBootstrap: "kafka:9092"
   redisHost: "redis"
   redisPort: "6379"
+  dataDictionaryUrl: "http://data-dictionary:8080"
   enrichServiceUrl: "http://object-enrich-service:8080"
   subscriptionServiceUrl: "http://subscription-service:8080"
   inputTopic: "objects.flat"

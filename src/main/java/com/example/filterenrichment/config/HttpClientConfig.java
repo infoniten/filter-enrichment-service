@@ -26,6 +26,32 @@ import java.time.Duration;
 @Configuration
 public class HttpClientConfig {
 
+    /**
+     * RestClient pointed at DataDictionary, used only to fetch the metamodel at startup / on reloads
+     * (not per message). Backed by a small pooled Apache HttpClient with its own timeouts.
+     */
+    @Bean("metamodelRestClient")
+    public RestClient metamodelRestClient(RestClient.Builder builder, FilterEnrichmentProperties props) {
+        FilterEnrichmentProperties.Metamodel cfg = props.getMetamodel();
+
+        ConnectionConfig connectionConfig = ConnectionConfig.custom()
+                .setConnectTimeout(Timeout.ofMilliseconds(cfg.getConnectTimeoutMs()))
+                .setSocketTimeout(Timeout.ofMilliseconds(cfg.getReadTimeoutMs()))
+                .build();
+
+        PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setDefaultConnectionConfig(connectionConfig)
+                .build();
+
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(connectionManager)
+                .build();
+
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
+
+        return builder.baseUrl(cfg.getBaseUrl()).requestFactory(factory).build();
+    }
+
     /** RestClient pointed at the Enrich Service, backed by a pooled Apache HttpClient. */
     @Bean("enrichRestClient")
     public RestClient enrichRestClient(RestClient.Builder builder, FilterEnrichmentProperties props) {

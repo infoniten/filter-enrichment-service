@@ -1,6 +1,6 @@
 package com.example.filterenrichment.metamodel;
 
-import com.example.filterenrichment.metamodel.dto.DomainConfigResponse;
+import com.example.filterenrichment.metamodel.dto.MetadataResponse;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -9,17 +9,17 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Assembles an immutable {@link MetamodelCatalog} from the Enrich Service domain config.
+ * Assembles an immutable {@link MetamodelCatalog} from the DataDictionary metadata response.
  */
 public final class MetamodelCatalogFactory {
 
     private MetamodelCatalogFactory() {
     }
 
-    public static MetamodelCatalog build(DomainConfigResponse domain) {
+    public static MetamodelCatalog build(MetadataResponse domain) {
         Map<String, String> sourceValueToCanonical = new HashMap<>();
         if (domain.classes() != null) {
-            for (DomainConfigResponse.ClassEntry c : domain.classes()) {
+            for (MetadataResponse.ClassEntry c : domain.classes()) {
                 if (c.name() != null && c.sourceValue() != null) {
                     sourceValueToCanonical.put(c.sourceValue(), c.name());
                 }
@@ -28,11 +28,11 @@ public final class MetamodelCatalogFactory {
 
         Map<String, Set<String>> scalarFieldsByCanonical = new HashMap<>();
         if (domain.fields() != null) {
-            for (Map.Entry<String, DomainConfigResponse.FieldsBlock> e : domain.fields().entrySet()) {
+            for (Map.Entry<String, MetadataResponse.FieldsBlock> e : domain.fields().entrySet()) {
                 Set<String> names = new LinkedHashSet<>();
-                DomainConfigResponse.FieldsBlock block = e.getValue();
+                MetadataResponse.FieldsBlock block = e.getValue();
                 if (block != null && block.declaredFields() != null) {
-                    for (DomainConfigResponse.FieldEntry f : block.declaredFields()) {
+                    for (MetadataResponse.FieldEntry f : block.declaredFields()) {
                         if (f.name() != null) {
                             names.add(f.name());
                         }
@@ -49,12 +49,12 @@ public final class MetamodelCatalogFactory {
 
         Map<String, Map<String, MetamodelCatalog.Relation>> relationsByCanonical = new HashMap<>();
         if (domain.relations() != null) {
-            for (Map.Entry<String, List<DomainConfigResponse.RelationEntry>> e : domain.relations().entrySet()) {
+            for (Map.Entry<String, List<MetadataResponse.RelationEntry>> e : domain.relations().entrySet()) {
                 if (e.getValue() == null) {
                     continue;
                 }
                 Map<String, MetamodelCatalog.Relation> byAlias = new HashMap<>();
-                for (DomainConfigResponse.RelationEntry r : e.getValue()) {
+                for (MetadataResponse.RelationEntry r : e.getValue()) {
                     String alias = r.pathName();
                     if (alias != null && r.targetClass() != null) {
                         byAlias.put(alias, new MetamodelCatalog.Relation(r.targetClass(), r.isCollection()));

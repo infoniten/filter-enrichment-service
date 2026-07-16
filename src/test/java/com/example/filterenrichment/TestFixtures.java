@@ -2,13 +2,14 @@ package com.example.filterenrichment;
 
 import com.example.filterenrichment.metamodel.MetamodelCatalog;
 import com.example.filterenrichment.metamodel.MetamodelCatalogFactory;
-import com.example.filterenrichment.metamodel.dto.DomainConfigResponse;
+import com.example.filterenrichment.metamodel.dto.MetadataResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Shared test domain model (small slice of the real one), built the same way as production: parse a
- * {@code /api/config/domain} JSON body into {@link DomainConfigResponse} and assemble a catalog.
+ * DataDictionary {@code /api/search-service/metadata/v3} JSON body into {@link MetadataResponse} and
+ * assemble a catalog.
  */
 public final class TestFixtures {
 
@@ -53,7 +54,7 @@ public final class TestFixtures {
 
     public static MetamodelCatalog catalog() {
         try {
-            DomainConfigResponse domain = MAPPER.readValue(DOMAIN_JSON, DomainConfigResponse.class);
+            MetadataResponse domain = MAPPER.readValue(DOMAIN_JSON, MetadataResponse.class);
             return MetamodelCatalogFactory.build(domain);
         } catch (Exception e) {
             throw new IllegalStateException(e);
