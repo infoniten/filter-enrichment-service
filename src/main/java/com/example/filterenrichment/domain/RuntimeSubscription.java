@@ -15,13 +15,18 @@ public record RuntimeSubscription(
         String subscriberName,
         String topicPostfix,
         String topicName,
-        String objectClass,
+        List<Target> targets,
         List<String> fields,
         String filter,
         String engine,
         String status,
         String createdAt
 ) {
+
+    /** One class target: objectClass + whether subclasses are included (polymorphic vs exact). */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Target(String objectClass, boolean includeSubclasses) {
+    }
 
     public boolean isActive() {
         return "ACTIVE".equals(status);

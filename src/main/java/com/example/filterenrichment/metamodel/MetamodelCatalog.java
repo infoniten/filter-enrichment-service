@@ -54,6 +54,9 @@ public final class MetamodelCatalog {
 
     /** Resolves a class token (sourceValue, or already-canonical) to canonical, if known. */
     public Optional<String> canonicalOf(String token) {
+        if (token == null) {
+            return Optional.empty();
+        }
         String canonical = sourceValueToCanonical.get(token);
         if (canonical != null) {
             return Optional.of(canonical);
@@ -76,6 +79,11 @@ public final class MetamodelCatalog {
      */
     public boolean isCandidate(String objectCanonical, Collection<String> referencedCanonicals) {
         return chain(objectCanonical).containsAll(referencedCanonicals);
+    }
+
+    /** True if {@code ancestorCanonical} is {@code objectCanonical} or one of its ancestors. */
+    public boolean isAncestorOrSelf(String ancestorCanonical, String objectCanonical) {
+        return chain(objectCanonical).contains(ancestorCanonical);
     }
 
     /**

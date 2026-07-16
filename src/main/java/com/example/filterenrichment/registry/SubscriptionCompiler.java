@@ -3,19 +3,20 @@ package com.example.filterenrichment.registry;
 import com.example.filterenrichment.domain.RuntimeSubscription;
 import com.example.filterenrichment.fields.RequiredFieldsCalculator;
 import com.example.filterenrichment.filter.CompiledFilter;
+import com.example.filterenrichment.filter.FilterCompileException;
 import com.example.filterenrichment.filter.FilterSelectors;
 import com.example.filterenrichment.filter.RsqlFilterCompiler;
 import com.example.filterenrichment.metamodel.MetamodelCatalog;
 import org.springframework.stereotype.Component;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Compiles a {@link RuntimeSubscription} into a {@link CompiledSubscription}: resolves the target
- * class, computes the referenced classes (for candidacy), the required output fields and the
- * compiled RSQL filter.
+ * Compiles a {@link RuntimeSubscription} into a {@link CompiledSubscription}: resolves the class
+ * targets (canonical name + match mode), computes the required output fields and compiles the RSQL
+ * filter. Field applicability against the targets is validated upstream by the Subscription Service.
  */
 @Component
 public class SubscriptionCompiler {
@@ -27,39 +28,30 @@ public class SubscriptionCompiler {
     }
 
     public CompiledSubscription compile(RuntimeSubscription sub, MetamodelCatalog catalog) {
-        CompiledFilter filter = filterCompiler.compile(sub.filter(), catalog);
+        if (sub.targets() == null || sub.targets().isEmpty()) {
+            throw new FilterCompileException("MISSING_TARGETS", "subscription has no targets");
+        }
 
-        String objectCanonical = catalog.canonicalOf(sub.objectClass()).orElse(sub.objectClass());
-
-        Set<String> filterFields = FilterSelectors.extract(sub.filter());
-
-        Set<String> referenced = new LinkedHashSet<>();
-        referenced.add(objectCanonical);
-        if (sub.fields() != null) {
-            for (String field : sub.fields()) {
-                addReferenced(referenced, field, catalog);
+        List<CompiledSubscription.CompiledTarget> targets = new ArrayList<>();
+        for (RuntimeSubscription.Target t : sub.targets()) {
+            if (t == null || t.objectClass() == null || t.objectClass().isBlank()) {
+                throw new FilterCompileException("MISSING_OBJECT_CLASS", "target has no objectClass");
             }
-        }
-        for (String selector : filterFields) {
-            addReferenced(referenced, selector, catalog);
+            // Unknown class stays raw so it simply never matches (fail-safe) rather than throwing.
+            String canonical = catalog.canonicalOf(t.objectClass()).orElse(t.objectClass());
+            targets.add(new CompiledSubscription.CompiledTarget(canonical, t.includeSubclasses()));
         }
 
+        CompiledFilter filter = filterCompiler.compile(sub.filter(), catalog);
+        Set<String> filterFields = FilterSelectors.extract(sub.filter());
         List<String> requiredFields = RequiredFieldsCalculator.compute(sub.fields(), sub.filter());
 
         return new CompiledSubscription(
                 sub.subscriptionId(),
                 sub.subscriberName(),
-                objectCanonical,
-                Set.copyOf(referenced),
+                List.copyOf(targets),
                 requiredFields,
                 Set.copyOf(filterFields),
                 filter);
-    }
-
-    private void addReferenced(Set<String> referenced, String path, MetamodelCatalog catalog) {
-        int dot = path.indexOf('.');
-        String prefix = dot > 0 ? path.substring(0, dot) : path;
-        // Unknown prefixes are kept raw so candidacy fails safe (the subscription won't spuriously match).
-        referenced.add(catalog.canonicalOf(prefix).orElse(prefix));
     }
 }

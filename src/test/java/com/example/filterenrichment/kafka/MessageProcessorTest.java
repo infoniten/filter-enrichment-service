@@ -62,8 +62,9 @@ class MessageProcessorTest {
 
     private void register(String id, String objectClass, List<String> fields, String filter) {
         SubscriptionCompiler compiler = new SubscriptionCompiler(new RsqlFilterCompiler());
-        RuntimeSubscription sub = new RuntimeSubscription(id, "risk", "prod",
-                "subscription.risk.prod", objectClass, fields, filter, "OBJECT_BATCH", "ACTIVE", "2026-07-13T10:00:00Z");
+        RuntimeSubscription sub = new RuntimeSubscription(id, "risk", "prod", "subscription.risk.prod",
+                List.of(new RuntimeSubscription.Target(objectClass, true)),
+                fields, filter, "OBJECT_BATCH", "ACTIVE", "2026-07-13T10:00:00Z");
         registry.put(compiler.compile(sub, catalog));
     }
 
