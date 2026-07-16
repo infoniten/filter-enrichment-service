@@ -55,6 +55,23 @@ class InputMessageParserTest {
     }
 
     @Test
+    void acceptsNumericIdsSentAsStrings() {
+        // Source sends globalId/id as JSON strings.
+        InputMessage msg = parser.parse(bytes(
+                "{\"objectType\":\"FxSpotForwardTrade\",\"globalId\":\"110831655\",\"id\":\"201027932\"}"));
+        assertThat(msg.globalId()).isEqualTo(110831655L);
+        assertThat(msg.objectId()).isEqualTo("110831655");
+        assertThat(msg.revisionId()).isEqualTo(201027932L);
+    }
+
+    @Test
+    void rejectsNonNumericId() {
+        assertThatThrownBy(() -> parser.parse(bytes(
+                "{\"objectType\":\"X\",\"globalId\":\"abc\",\"id\":2}")))
+                .isInstanceOf(InputParseException.class);
+    }
+
+    @Test
     void rejectsMalformedAndIncomplete() {
         assertThatThrownBy(() -> parser.parse(bytes("not json")))
                 .isInstanceOf(InputParseException.class);

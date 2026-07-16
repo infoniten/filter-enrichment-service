@@ -97,10 +97,24 @@ public class InputMessageParser {
 
     private Long requireLong(JsonNode node, String field) {
         JsonNode v = node.get(field);
-        if (v == null || v.isNull() || !v.canConvertToLong()) {
-            throw new InputParseException("missing/invalid " + field);
+        if (v != null && !v.isNull()) {
+            // Numeric node (long/int).
+            if (v.canConvertToLong()) {
+                return v.asLong();
+            }
+            // Numeric value sent as a JSON string, e.g. "globalId": "110831655".
+            if (v.isTextual()) {
+                String s = v.asText().trim();
+                if (!s.isEmpty()) {
+                    try {
+                        return Long.parseLong(s);
+                    } catch (NumberFormatException ignored) {
+                        // fall through to the error below
+                    }
+                }
+            }
         }
-        return v.asLong();
+        throw new InputParseException("missing/invalid " + field);
     }
 
     private String text(JsonNode node, String field) {
