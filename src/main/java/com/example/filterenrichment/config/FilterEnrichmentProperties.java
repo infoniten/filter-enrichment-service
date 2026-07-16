@@ -16,6 +16,7 @@ public class FilterEnrichmentProperties {
     private final Enrich enrich = new Enrich();
     private final Retry retry = new Retry();
     private final Backpressure backpressure = new Backpressure();
+    private final Startup startup = new Startup();
     private final SubscriptionService subscriptionService = new SubscriptionService();
 
     /** Only subscriptions with this engine (and status ACTIVE) are served. */
@@ -39,6 +40,10 @@ public class FilterEnrichmentProperties {
 
     public Backpressure getBackpressure() {
         return backpressure;
+    }
+
+    public Startup getStartup() {
+        return startup;
     }
 
     public SubscriptionService getSubscriptionService() {
@@ -354,6 +359,20 @@ public class FilterEnrichmentProperties {
 
         public void setBaseUrl(String v) {
             this.baseUrl = v;
+        }
+    }
+
+    /** Startup gating: how often to retry loading the domain model / subscriptions before the
+     * Kafka consumers are started (the pod stays not-ready until they are). */
+    public static class Startup {
+        private long retryIntervalMs = 5_000;
+
+        public long getRetryIntervalMs() {
+            return retryIntervalMs;
+        }
+
+        public void setRetryIntervalMs(long v) {
+            this.retryIntervalMs = v;
         }
     }
 }

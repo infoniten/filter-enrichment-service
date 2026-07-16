@@ -59,7 +59,11 @@ public class KafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.setConcurrency(props.getKafka().getConcurrency());
-        // Commit offset after each record is fully processed (published / no-match / DLQ) —.
+        // Do NOT start consuming automatically: the listeners are started by RegistryStartupLoader
+        // only after the domain model and runtime subscriptions have been loaded, so no record is
+        // ever processed before the metamodel is available.
+        factory.setAutoStartup(false);
+        // Commit offset after each record is fully processed (published / no-match / DLQ).
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
         return factory;
     }

@@ -67,6 +67,9 @@ filter-enrichment:
     max-concurrent-http-requests: ${MAX_CONCURRENT_HTTP:32}
     acquire-timeout-ms: ${BACKPRESSURE_ACQUIRE_TIMEOUT_MS:1000}
     pause-ms: ${BACKPRESSURE_PAUSE_MS:500}
+  startup:
+    # Consumers start only after the domain model + subscriptions load; retried at this interval.
+    retry-interval-ms: ${STARTUP_RETRY_INTERVAL_MS:5000}
   subscription-service:
     base-url: ${SUBSCRIPTION_SERVICE_URL:http://subscription-service:8080}
 
