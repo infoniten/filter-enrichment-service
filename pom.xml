@@ -47,20 +47,20 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
-        <!-- RSQL filter compilation (§8) -->
+        <!-- RSQL filter compilation -->
         <dependency>
             <groupId>cz.jirutka.rsql</groupId>
             <artifactId>rsql-parser</artifactId>
             <version>${rsql-parser.version}</version>
         </dependency>
 
-        <!-- Exponential-backoff retry (§27/§33) -->
+        <!-- Exponential-backoff retry -->
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
         </dependency>
 
-        <!-- Circuit breaker + bulkhead for the Enrich Service HTTP client (§33). Used programmatically. -->
+        <!-- Circuit breaker + bulkhead for the Enrich Service HTTP client. Used programmatically. -->
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-circuitbreaker</artifactId>
@@ -77,7 +77,7 @@
             <version>${resilience4j.version}</version>
         </dependency>
 
-        <!-- Pooled HTTP client so RestClient uses connection pooling / keep-alive (§33) -->
+        <!-- Pooled HTTP client so RestClient uses connection pooling / keep-alive -->
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
