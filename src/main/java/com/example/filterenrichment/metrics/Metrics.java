@@ -25,6 +25,7 @@ public class Metrics {
     private final DistributionSummary candidateSubscriptions;
     private final DistributionSummary matchedSubscriptions;
     private final Counter getRequests;
+    private final Counter revisionRequests;
     private final Counter httpErrors;
     private final Timer httpLatency;
     private final Counter partial;
@@ -42,6 +43,7 @@ public class Metrics {
         this.candidateSubscriptions = DistributionSummary.builder("filter_enrichment_candidate_subscriptions_total").register(registry);
         this.matchedSubscriptions = DistributionSummary.builder("filter_enrichment_matched_subscriptions_total").register(registry);
         this.getRequests = Counter.builder("filter_enrichment_get_requests_total").register(registry);
+        this.revisionRequests = Counter.builder("filter_enrichment_revision_requests_total").register(registry);
         this.httpErrors = Counter.builder("filter_enrichment_http_errors_total").register(registry);
         this.httpLatency = Timer.builder("filter_enrichment_http_latency_seconds").register(registry);
         this.partial = Counter.builder("filter_enrichment_partial_total").register(registry);
@@ -82,6 +84,10 @@ public class Metrics {
 
     public void getRequest() {
         getRequests.increment();
+    }
+
+    public void revisionRequest() {
+        revisionRequests.increment();
     }
 
     public void httpError() {

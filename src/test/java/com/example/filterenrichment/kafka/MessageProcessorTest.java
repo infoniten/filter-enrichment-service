@@ -133,40 +133,39 @@ class MessageProcessorTest {
         verify(dlqPublisher).toInput(eq("t1"), eq(value), any());
     }
 
-    // ============ BEFORE_AFTER collapsed to the `after` object (single uniform format) ============
+    // ==================== BEFORE_AFTER ====================
 
     @Test
-    void beforeAfter_emittedAsSingleObject_usingAfterState() {
-        // Filter matches the `after` state (portfolioId=2); the `before` side (portfolioId=1) is ignored.
-        register("sub-1", "FxSpotForwardTrade", List.of("Trade.contractId"), "portfolioId==2");
-        // Enriched by globalId exactly like a single OBJECT message — no revision-pair call.
-        when(enrichClient.enrichObject(eq("FxSpotForwardTrade"), eq(123L), anyList()))
-                .thenReturn(TestFixtures.json("{\"portfolioId\":2,\"contractId\":1}"));
+    void beforeAfter_beforeMatchesOnly_recordsBothFlags() {
+        register("sub-1", "FxSpotForwardTrade", List.of("Trade.contractId"), "portfolioId==1");
+        when(enrichClient.enrichRevisions(eq("FxSpotForwardTrade"), eq(List.of(10L, 11L)), anyList()))
+                .thenReturn(TestFixtures.json(
+                        "[{\"id\":10,\"portfolioId\":1,\"contractId\":1},{\"id\":11,\"portfolioId\":2,\"contractId\":1}]"));
 
         processor.process("t1", beforeAfterMessage());
 
         ArgumentCaptor<JsonNode> out = ArgumentCaptor.forClass(JsonNode.class);
-        verify(outputPublisher).publish(eq("123"), out.capture(), any()); // keyed by globalId of `after`
+        verify(outputPublisher).publish(eq("123"), out.capture(), any()); // keyed by globalId
         JsonNode published = out.getValue();
-        // Same envelope as a single OBJECT: matchedSubscriptionIds + object + metadata.
-        assertThat(published.get("matchedSubscriptionIds")).hasSize(1);
-        assertThat(published.get("matchedSubscriptionIds").get(0).asText()).isEqualTo("sub-1");
-        assertThat(published.get("object").get("portfolioId").asInt()).isEqualTo(2);
-        assertThat(published.get("metadata").get("enrichmentStatus").asText()).isEqualTo("FULL");
-        // No before/after or per-side match flags leak into the output.
-        assertThat(published.hasNonNull("before")).isFalse();
-        assertThat(published.hasNonNull("after")).isFalse();
-        assertThat(published.hasNonNull("subscriptionMatches")).isFalse();
+        JsonNode m = published.get("subscriptionMatches").get(0);
+        assertThat(m.get("subscriptionId").asText()).isEqualTo("sub-1");
+        assertThat(m.get("beforeMatched").asBoolean()).isTrue();
+        assertThat(m.get("afterMatched").asBoolean()).isFalse();
+        // before/after carry the enriched objects directly (no wrapper).
+        assertThat(published.get("before").get("portfolioId").asInt()).isEqualTo(1);
+        assertThat(published.get("after").get("portfolioId").asInt()).isEqualTo(2);
     }
 
     @Test
-    void beforeAfter_afterNotCandidate_dropsWithoutEnrichOrOutput() {
-        // Filter matches only the `before` state; since only `after` is considered, it is dropped.
+    void beforeAfter_missingRevision_routesToEnrichmentDlq() {
         register("sub-1", "FxSpotForwardTrade", List.of("Trade.contractId"), "portfolioId==1");
+        when(enrichClient.enrichRevisions(any(), anyList(), anyList()))
+                .thenReturn(TestFixtures.json("[{\"id\":10,\"contractId\":1}]")); // id 11 missing
 
-        processor.process("t1", beforeAfterMessage());
+        byte[] value = beforeAfterMessage();
+        processor.process("t1", value);
 
-        verify(enrichClient, never()).enrichObject(any(), anyLong(), anyList());
+        verify(dlqPublisher).toEnrichment(eq("t1"), eq(value), any());
         verify(outputPublisher, never()).publish(any(), any(), any());
     }
 

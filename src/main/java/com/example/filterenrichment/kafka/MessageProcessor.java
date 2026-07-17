@@ -4,10 +4,11 @@ import com.example.filterenrichment.domain.EnrichmentStatus;
 import com.example.filterenrichment.domain.InputMessage;
 import com.example.filterenrichment.domain.InputMessageParser;
 import com.example.filterenrichment.domain.InputParseException;
-import com.example.filterenrichment.domain.MessageType;
 import com.example.filterenrichment.enrich.EnrichClient;
 import com.example.filterenrichment.enrich.EnrichException;
+import com.example.filterenrichment.enrich.RevisionMatcher;
 import com.example.filterenrichment.filter.JsonPaths;
+import com.example.filterenrichment.filter.Tri;
 import com.example.filterenrichment.metamodel.MetamodelCatalog;
 import com.example.filterenrichment.metamodel.MetamodelHolder;
 import com.example.filterenrichment.metrics.Metrics;
@@ -26,22 +27,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 
 /**
- * Core pipeline for the OBJECT_BATCH engine: parse & validate the input record, pre-match candidate
- * subscriptions on the flat payload, enrich once via the Object Enrich Service, apply full filters on
- * the enriched data, and publish a single matched output record — or drop / DLQ.
- *
- * <p>The engine emits ONE uniform output shape regardless of input shape. A before/after change is
- * processed as a plain object over its {@code after} state — the {@code before} side is ignored and
- * never emitted — so the published record is byte-for-byte the same envelope as a single OBJECT
- * message ({@code matchedSubscriptionIds} + {@code object} + {@code metadata}).
- *
- * <p>Never treats a filter as false merely because a field is missing: if a filter cannot be computed
- * the message goes to the Enrichment DLQ.
+ * Core pipeline: parse & validate the input record, pre-match candidate subscriptions
+ * on the flat payload, enrich once via the Object Enrich Service, apply full filters on the enriched
+ * data, and publish a single matched output record — or drop / DLQ. Never treats a filter as false
+ * merely because a field is missing: if a filter cannot be computed the message goes to the
+ * Enrichment DLQ.
  */
 @Component
 public class MessageProcessor {
@@ -95,19 +91,17 @@ public class MessageProcessor {
         MetamodelCatalog catalog = metamodel.get(); // throws if not loaded -> record redelivered
         String objectCanonical = catalog.canonicalOf(msg.objectClass()).orElse(msg.objectClass());
 
-        // OBJECT_BATCH is state-oriented: a before/after change is handled as a single object over its
-        // `after` state (the `before` side is dropped, never emitted). The parser already resolves
-        // objectClass/globalId/objectId to the `after` version, so the flat payload for pre-matching is
-        // the only thing to pick per input shape — everything downstream is the exact OBJECT path.
-        JsonNode flat = msg.messageType() == MessageType.BEFORE_AFTER
-                ? msg.after().payload()
-                : msg.payload();
-
-        processObject(key, value, msg, catalog, objectCanonical, flat);
+        switch (msg.messageType()) {
+            case OBJECT -> processObject(key, value, msg, catalog, objectCanonical);
+            case BEFORE_AFTER -> processBeforeAfter(key, value, msg, catalog, objectCanonical);
+        }
     }
 
+    // ==================== OBJECT ====================
+
     private void processObject(String key, byte[] value, InputMessage msg,
-                               MetamodelCatalog catalog, String objectCanonical, JsonNode flat) {
+                               MetamodelCatalog catalog, String objectCanonical) {
+        JsonNode flat = msg.payload();
         List<CompiledSubscription> candidates = registry.all().stream()
                 .filter(s -> s.matchesClass(objectCanonical, catalog))
                 .filter(s -> !s.filter().preMatch(flat).isDefinitelyFalse())
@@ -161,7 +155,90 @@ public class MessageProcessor {
         outputPublisher.publish(msg.objectId(), out, value);
     }
 
+    // ==================== BEFORE_AFTER ====================
+
+    private void processBeforeAfter(String key, byte[] value, InputMessage msg,
+                                    MetamodelCatalog catalog, String objectCanonical) {
+        JsonNode flatBefore = msg.before().payload();
+        JsonNode flatAfter = msg.after().payload();
+
+        // Candidate if class matches AND at least one side is not definitely false.
+        List<CompiledSubscription> candidates = registry.all().stream()
+                .filter(s -> s.matchesClass(objectCanonical, catalog))
+                .filter(s -> {
+                    Tri before = s.filter().preMatch(flatBefore);
+                    Tri after = s.filter().preMatch(flatAfter);
+                    return !(before.isDefinitelyFalse() && after.isDefinitelyFalse());
+                })
+                .toList();
+        metrics.candidates(candidates.size());
+        if (candidates.isEmpty()) {
+            metrics.droppedNoCandidates();
+            return;
+        }
+
+        List<String> requiredFields = unionRequiredFields(candidates);
+        long beforeRev = msg.before().revisionId();
+        long afterRev = msg.after().revisionId();
+        List<Long> revisions = beforeRev == afterRev ? List.of(beforeRev) : List.of(beforeRev, afterRev);
+
+        Map<Long, JsonNode> enrichedByRevision;
+        try {
+            JsonNode response = backpressure.run(() ->
+                    enrichClient.enrichRevisions(msg.objectClass(), revisions, requiredFields));
+            enrichedByRevision = RevisionMatcher.match(response, revisions);
+        } catch (EnrichException e) {
+            dlqPublisher.toEnrichment(key, value, "enrich revisions failed: " + e.getMessage());
+            return;
+        }
+
+        JsonNode enrichedBefore = enrichedByRevision.get(beforeRev);
+        JsonNode enrichedAfter = enrichedByRevision.get(afterRev);
+        Predicate<String> presentBoth = f ->
+                isPresent(enrichedBefore, f, catalog) && isPresent(enrichedAfter, f, catalog);
+
+        List<SubscriptionMatch> matches = new ArrayList<>();
+        for (CompiledSubscription sub : candidates) {
+            if (!filterComputable(sub, presentBoth)) {
+                dlqPublisher.toEnrichment(key, value,
+                        "filter field missing after enrichment for " + sub.subscriptionId());
+                return; //
+            }
+            boolean beforeMatched = sub.filter().matches(enrichedBefore);
+            boolean afterMatched = sub.filter().matches(enrichedAfter);
+            if (beforeMatched || afterMatched) {
+                matches.add(new SubscriptionMatch(sub.subscriptionId(), beforeMatched, afterMatched));
+            }
+        }
+        if (matches.isEmpty()) {
+            metrics.droppedNoMatches();
+            return;
+        }
+        metrics.matched(matches.size());
+
+        List<String> missing = missingFields(requiredFields, presentBoth);
+        EnrichmentStatus status = statusOf(missing);
+
+        ObjectNode out = mapper.createObjectNode();
+        ArrayNode matchArray = out.putArray("subscriptionMatches");
+        for (SubscriptionMatch m : matches) {
+            ObjectNode mn = matchArray.addObject();
+            mn.put("subscriptionId", m.subscriptionId());
+            mn.put("beforeMatched", m.beforeMatched());
+            mn.put("afterMatched", m.afterMatched());
+        }
+        // The enriched before/after objects are emitted as-is (each already carries its ids/savedAt).
+        out.set("before", enrichedBefore);
+        out.set("after", enrichedAfter);
+        out.set("metadata", metadata(status, missing));
+
+        outputPublisher.publish(msg.objectId(), out, value);
+    }
+
     // ==================== helpers ====================
+
+    private record SubscriptionMatch(String subscriptionId, boolean beforeMatched, boolean afterMatched) {
+    }
 
     private List<String> unionRequiredFields(List<CompiledSubscription> subs) {
         TreeSet<String> union = new TreeSet<>();
