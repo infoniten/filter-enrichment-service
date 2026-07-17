@@ -62,20 +62,6 @@ public class EnrichClient {
                 .body(JsonNode.class));
     }
 
-    /** Enriches a before/after pair in one request. Returns the raw response (array of versions). */
-    public JsonNode enrichRevisions(String objectClass, List<Long> revisionIds, List<String> outputFields) {
-        metrics.revisionRequest();
-        return execute(() -> restClient.post()
-                .uri(b -> {
-                    b.path("/api/v1/enriched-objects/{objectClass}/revisions");
-                    outputFields.forEach(f -> b.queryParam("outputField", f));
-                    return b.build(objectClass);
-                })
-                .body(revisionIds)
-                .retrieve()
-                .body(JsonNode.class));
-    }
-
     private JsonNode execute(Supplier<JsonNode> httpCall) {
         EnrichException last = null;
         for (int attempt = 1; attempt <= retry.getMaxAttempts(); attempt++) {
