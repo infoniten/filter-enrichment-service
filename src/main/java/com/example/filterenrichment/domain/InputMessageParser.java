@@ -32,11 +32,18 @@ public class InputMessageParser {
 
         boolean hasBefore = isObject(root.get("before"));
         boolean hasAfter = isObject(root.get("after"));
-        if (hasBefore || hasAfter) {
-            if (!hasBefore || !hasAfter) {
-                throw new InputParseException("BEFORE_AFTER requires both before and after objects");
-            }
+        if (hasBefore && hasAfter) {
             return beforeAfter(root.get("before"), root.get("after"));
+        }
+        if (hasAfter) {
+            // First version of the object: `before` is null/absent, so there is no prior revision to
+            // compare against — the object can only enter the selection, never leave it. Handle it as
+            // a plain OBJECT on the `after` body (same downstream effect: delivered iff it matches).
+            return object(root.get("after"));
+        }
+        if (hasBefore) {
+            // Only `before` present (`after` null/absent): a deletion — not a supported change shape.
+            throw new InputParseException("BEFORE_AFTER requires an 'after' object");
         }
         return object(root);
     }

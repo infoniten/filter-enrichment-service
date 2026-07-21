@@ -48,6 +48,35 @@ class InputMessageParserTest {
     }
 
     @Test
+    void parsesFirstVersion_beforeNull_asObject() {
+        // First version of an object: source sends before/after with before == null.
+        InputMessage msg = parser.parse(bytes("""
+                {"before":null,
+                 "after":{"objectType":"FxSpotForwardTrade","globalId":110038431,"id":201027932,
+                          "savedAt":"2026-07-14T17:04:03.404+03:00","portfolioId":6052,"status":"LIVE"}}
+                """));
+
+        assertThat(msg.messageType()).isEqualTo(MessageType.OBJECT);
+        assertThat(msg.objectClass()).isEqualTo("FxSpotForwardTrade");
+        assertThat(msg.globalId()).isEqualTo(110038431L);
+        assertThat(msg.objectId()).isEqualTo("110038431");    // objectId <- after.globalId
+        assertThat(msg.revisionId()).isEqualTo(201027932L);   // revisionId <- after.id
+        assertThat(msg.payload().get("portfolioId").asInt()).isEqualTo(6052);
+        assertThat(msg.before()).isNull();
+        assertThat(msg.after()).isNull();
+    }
+
+    @Test
+    void parsesOnlyAfterKey_asObject() {
+        // `before` key absent entirely -> still a first version, handled as OBJECT.
+        InputMessage msg = parser.parse(bytes(
+                "{\"after\":{\"objectType\":\"FxSpotForwardTrade\",\"globalId\":1,\"id\":2,\"portfolioId\":6052}}"));
+        assertThat(msg.messageType()).isEqualTo(MessageType.OBJECT);
+        assertThat(msg.globalId()).isEqualTo(1L);
+        assertThat(msg.payload().get("portfolioId").asInt()).isEqualTo(6052);
+    }
+
+    @Test
     void objectClassFieldTakesPrecedenceOverObjectType() {
         InputMessage msg = parser.parse(bytes(
                 "{\"objectClass\":\"FxNdfTrade\",\"objectType\":\"FxSpotForwardTrade\",\"globalId\":1,\"id\":2}"));
