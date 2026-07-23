@@ -30,7 +30,7 @@ public class RsqlFilterCompiler {
      *                                or traverses a collection.
      */
     public CompiledFilter compile(String filter, MetamodelCatalog catalog) {
-        if (filter == null || filter.isBlank()) {
+        if (isNoFilter(filter)) {
             return CompiledFilter.ALWAYS_TRUE;
         }
         cz.jirutka.rsql.parser.ast.Node ast;
@@ -40,6 +40,15 @@ public class RsqlFilterCompiler {
             throw new FilterCompileException("FILTER_PARSE_ERROR", "Cannot parse RSQL filter: " + e.getMessage());
         }
         return new CompiledFilter(ast.accept(new NodeVisitor(catalog)));
+    }
+
+    /**
+     * "No filter configured" — matches every object of the target class. True for {@code null}, a
+     * blank string, or the literal string {@code "null"} (a common serialization artifact of a null
+     * value; it is not valid RSQL, so it can only mean "no filter").
+     */
+    private static boolean isNoFilter(String filter) {
+        return filter == null || filter.isBlank() || filter.trim().equalsIgnoreCase("null");
     }
 
     private static final class NodeVisitor implements RSQLVisitor<CompiledFilter.Node, Void> {

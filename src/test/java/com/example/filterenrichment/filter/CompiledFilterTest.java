@@ -20,6 +20,17 @@ class CompiledFilterTest {
     }
 
     @Test
+    void literalNullStringMeansNoFilter() {
+        // A filter stored as the string "null" (serialization artifact of a null value) is NOT valid
+        // RSQL; it must be treated as "no filter" (match all), never fail compilation and drop the sub.
+        for (String v : new String[]{"null", "NULL", "  null  "}) {
+            CompiledFilter f = compiler.compile(v, catalog);
+            assertThat(f.matches(TestFixtures.json("{\"portfolioId\":1}"))).as("filter=%s", v).isTrue();
+            assertThat(f.preMatch(TestFixtures.json("{}"))).as("filter=%s", v).isEqualTo(Tri.TRUE);
+        }
+    }
+
+    @Test
     void flatFieldPreMatchIsDecidableFromFlatPayload() {
         CompiledFilter f = compiler.compile("portfolioId==1", catalog);
         assertThat(f.preMatch(TestFixtures.json("{\"portfolioId\":1}"))).isEqualTo(Tri.TRUE);
