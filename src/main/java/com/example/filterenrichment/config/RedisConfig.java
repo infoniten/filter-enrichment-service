@@ -36,6 +36,7 @@ public class RedisConfig {
             @Value("${spring.data.redis.host:localhost}") String host,
             @Value("${spring.data.redis.port:6379}") int port,
             @Value("${spring.data.redis.password:}") String password,
+            @Value("${spring.data.redis.username:}") String username,
             @Value("${spring.data.redis.timeout:2s}") Duration timeout,
             @Value("${spring.data.redis.cluster.nodes:}") String clusterNodes,
             @Value("${spring.data.redis.cluster.max-redirects:3}") int maxRedirects) {
@@ -48,6 +49,9 @@ public class RedisConfig {
             cluster.setMaxRedirects(maxRedirects);
             if (!password.isEmpty()) {
                 cluster.setPassword(password);
+            }
+            if (!username.isEmpty()) {
+                cluster.setUsername(username);
             }
             ClusterTopologyRefreshOptions refresh = ClusterTopologyRefreshOptions.builder()
                     .enablePeriodicRefresh(Duration.ofSeconds(30))
@@ -63,6 +67,9 @@ public class RedisConfig {
         RedisStandaloneConfiguration standalone = new RedisStandaloneConfiguration(host, port);
         if (!password.isEmpty()) {
             standalone.setPassword(password);
+        }
+        if (!username.isEmpty()) {
+            standalone.setUsername(username);
         }
         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
                 .commandTimeout(timeout)

@@ -9,6 +9,7 @@ spring:
         enabled: false   # no Spring Data Redis (@RedisHash) repositories are used
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
       timeout: 2s
       cluster:
