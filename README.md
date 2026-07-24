@@ -14,17 +14,30 @@
 Самостоятельное приложение и отдельный git-репозиторий (не входит в Subscription Service и Delivery
 Engine): свой Docker image, Helm chart, CI и релизный цикл.
 
-```mermaid
-flowchart LR
-  SRC[objects.flat<br/>исходные объекты] --> FE[**Filter Enrichment Service**]
-  FE <-->|enrich once| OE[Object Enrich Service]
-  DD[DataDictionary · метамодель] -.-> FE
-  REDIS[(Redis · подписки)] -.-> FE
-  FE --> ENR[(objects.enriched)]
-  ENR --> BATCH[Delivery Engine Batch]
-  ENR --> EVENT[Delivery Engine Event]
-  BATCH --> CB[потребители]
-  EVENT --> CE[потребители]
+```plantuml
+@startuml
+!pragma layout smetana
+left to right direction
+rectangle "objects.flat\nисходные объекты" as SRC
+rectangle "**Filter Enrichment Service**" as FE
+rectangle "Object Enrich Service" as OE
+rectangle "DataDictionary · метамодель" as DD
+database "Redis · подписки" as REDIS
+database "objects.enriched" as ENR
+rectangle "Delivery Engine Batch" as BATCH
+rectangle "Delivery Engine Event" as EVENT
+rectangle "потребители" as CB
+rectangle "потребители" as CE
+SRC --> FE
+FE <--> OE : enrich once
+DD ..> FE
+REDIS ..> FE
+FE --> ENR
+ENR --> BATCH
+ENR --> EVENT
+BATCH --> CB
+EVENT --> CE
+@enduml
 ```
 
 ## Ключевые принципы (кратко)

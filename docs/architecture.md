@@ -2,19 +2,33 @@
 
 ## Место в системе
 
-```mermaid
-flowchart LR
-  SRC[Source Objects topic<br/>objects.flat] --> FE[**Filter Enrichment Service**]
-  FE <-->|enrich once| OE[Object Enrich Service]
-  DD[DataDictionary] -.metamodel.-> FE
-  SS[Subscription Service] -->|config| REDIS[(Redis)]
-  REDIS -.reads + pub/sub.-> FE
-  FE -->|fail uncompilable filter| SS
-  FE --> ENR[(objects.enriched)]
-  ENR --> BATCH[Delivery Engine Batch]
-  ENR --> EVENT[Delivery Engine Event]
-  BATCH --> TB[subscriber topics]
-  EVENT --> TE[subscriber topics<br/>PUT / REMOVE]
+```plantuml
+@startuml
+!pragma layout smetana
+left to right direction
+rectangle "Source Objects topic\nobjects.flat" as SRC
+rectangle "**Filter Enrichment Service**" as FE
+rectangle "Object Enrich Service" as OE
+rectangle "DataDictionary" as DD
+rectangle "Subscription Service" as SS
+database "Redis" as REDIS
+database "objects.enriched" as ENR
+rectangle "Delivery Engine Batch" as BATCH
+rectangle "Delivery Engine Event" as EVENT
+rectangle "subscriber topics" as TB
+rectangle "subscriber topics\nPUT / REMOVE" as TE
+SRC --> FE
+FE <--> OE : enrich once
+DD ..> FE : metamodel
+SS --> REDIS : config
+REDIS ..> FE : reads + pub/sub
+FE --> SS : fail uncompilable filter
+FE --> ENR
+ENR --> BATCH
+ENR --> EVENT
+BATCH --> TB
+EVENT --> TE
+@enduml
 ```
 
 Filter Enrichment Service стоит между исходным потоком объектов и Delivery-движками. Он —
@@ -60,37 +74,72 @@ Filter Enrichment Service стоит между исходным потоком 
 
 ## Алгоритм на одну запись
 
-```mermaid
-flowchart TD
-  A[record key,value] --> B{parse JSON}
-  B -- ошибка --> DIN[input DLQ]
-  B -- ok --> C{форма?}
-  C -- before + after --> BA[BEFORE_AFTER]
-  C -- голый объект --> OBJ[OBJECT]
-
-  OBJ --> O1[кандидаты: класс совпал<br/>И preMatch flat не FALSE]
-  O1 -- нет кандидатов --> DROP1[drop]
-  O1 -- есть --> O2[union required fields]
-  O2 --> O3[enrich object · 1 HTTP]
-  O3 -- EnrichException --> DENR[enrichment DLQ]
-  O3 -- ok --> O4{фильтр вычислим?}
-  O4 -- нет поля фильтра --> DENR
-  O4 -- да --> O5[matched = фильтр true]
-  O5 -- пусто --> DROP2[drop]
-  O5 -- есть --> O6[конверт OBJECT + metadata]
-  O6 --> PUB[publish objects.enriched<br/>key=objectId]
-
-  BA --> A1[кандидаты: класс совпал<br/>И не обе стороны FALSE]
-  A1 -- нет кандидатов --> DROP1
-  A1 -- есть --> A2[union required fields]
-  A2 --> A3[enrich before+after · 1 HTTP<br/>match по id]
-  A3 -- EnrichException / ревизия не найдена --> DENR
-  A3 -- ok --> A4{фильтр вычислим<br/>на обеих сторонах?}
-  A4 -- нет --> DENR
-  A4 -- да --> A5[beforeMatched / afterMatched<br/>включить если хотя бы одна true]
-  A5 -- пусто --> DROP2
-  A5 -- есть --> A6[конверт BEFORE_AFTER + metadata]
-  A6 --> PUB
+```plantuml
+@startuml
+start
+:record key,value;
+if (parse JSON) then (ошибка)
+  :input DLQ;
+  stop
+else (ok)
+endif
+switch (форма?)
+case (голый объект)
+  :OBJECT;
+  :кандидаты: класс совпал\nИ preMatch flat не FALSE;
+  if (кандидаты?) then (нет кандидатов)
+    :drop;
+    stop
+  else (есть)
+  endif
+  :union required fields;
+  if (enrich object · 1 HTTP) then (EnrichException)
+    :enrichment DLQ;
+    stop
+  else (ok)
+  endif
+  if (фильтр вычислим?) then (нет поля фильтра)
+    :enrichment DLQ;
+    stop
+  else (да)
+  endif
+  :matched = фильтр true;
+  if (совпадения?) then (пусто)
+    :drop;
+    stop
+  else (есть)
+  endif
+  :конверт OBJECT + metadata;
+case (before + after)
+  :BEFORE_AFTER;
+  :кандидаты: класс совпал\nИ не обе стороны FALSE;
+  if (кандидаты?) then (нет кандидатов)
+    :drop;
+    stop
+  else (есть)
+  endif
+  :union required fields;
+  if (enrich before+after · 1 HTTP\nmatch по id) then (EnrichException / ревизия не найдена)
+    :enrichment DLQ;
+    stop
+  else (ok)
+  endif
+  if (фильтр вычислим\nна обеих сторонах?) then (нет)
+    :enrichment DLQ;
+    stop
+  else (да)
+  endif
+  :beforeMatched / afterMatched\nвключить если хотя бы одна true;
+  if (совпадения?) then (пусто)
+    :drop;
+    stop
+  else (есть)
+  endif
+  :конверт BEFORE_AFTER + metadata;
+endswitch
+:publish objects.enriched\nkey=objectId;
+stop
+@enduml
 ```
 
 Ключевые свойства:
@@ -106,66 +155,68 @@ flowchart TD
 
 ### Последовательность OBJECT
 
-```mermaid
-sequenceDiagram
-  participant K as objects.flat
-  participant P as MessageProcessor
-  participant R as Registry
-  participant BP as Backpressure
-  participant E as Enrich Service
-  participant Pub as OutputPublisher
-  participant O as objects.enriched
-  K->>P: {objectClass, globalId, id, ...flat}
-  P->>R: кандидаты (класс + preMatch flat ≠ FALSE)
-  R-->>P: список CompiledSubscription
-  alt нет кандидатов
-    P-->>P: drop (no candidates)
-  else есть
-    P->>P: union(requiredFields)
-    P->>BP: run(enrichObject)
-    BP->>E: GET /api/v1/enriched-objects/{class}?globalId&outputField…
-    E-->>BP: enriched object
-    BP-->>P: enriched
-    P->>P: фильтр по каждому кандидату (или DLQ, если поле недоступно)
-    alt есть совпадения
-      P->>Pub: publish(objectId, {matchedSubscriptionIds, object, metadata})
-      Pub->>O: OBJECT (key=objectId)
-    else нет
-      P-->>P: drop (no matches)
-    end
+```plantuml
+@startuml
+participant "objects.flat" as K
+participant MessageProcessor as P
+participant Registry as R
+participant Backpressure as BP
+participant "Enrich Service" as E
+participant OutputPublisher as Pub
+participant "objects.enriched" as O
+K -> P : {objectClass, globalId, id, ...flat}
+P -> R : кандидаты (класс + preMatch flat ≠ FALSE)
+R --> P : список CompiledSubscription
+alt нет кандидатов
+  P --> P : drop (no candidates)
+else есть
+  P -> P : union(requiredFields)
+  P -> BP : run(enrichObject)
+  BP -> E : GET /api/v1/enriched-objects/{class}?globalId&outputField…
+  E --> BP : enriched object
+  BP --> P : enriched
+  P -> P : фильтр по каждому кандидату (или DLQ, если поле недоступно)
+  alt есть совпадения
+    P -> Pub : publish(objectId, {matchedSubscriptionIds, object, metadata})
+    Pub -> O : OBJECT (key=objectId)
+  else нет
+    P --> P : drop (no matches)
   end
+end
+@enduml
 ```
 
 ### Последовательность BEFORE_AFTER
 
-```mermaid
-sequenceDiagram
-  participant K as objects.flat
-  participant P as MessageProcessor
-  participant BP as Backpressure
-  participant E as Enrich Service
-  participant M as RevisionMatcher
-  participant Pub as OutputPublisher
-  participant O as objects.enriched
-  K->>P: {before:{…}, after:{…}}
-  P->>P: кандидаты (класс + не обе стороны FALSE)
-  P->>P: union(requiredFields); revisions = [beforeId, afterId] (дедуп если равны)
-  P->>BP: run(enrichRevisions)
-  BP->>E: POST /api/v1/enriched-objects/{class}/revisions?outputField…  body:[ids]
-  E-->>BP: массив/объект версий
-  BP-->>P: response
-  P->>M: match(response, revisions)
-  M-->>P: {beforeId→enriched, afterId→enriched} (обе обязательны, без дублей)
-  loop каждый кандидат
-    P->>P: beforeMatched = filter(before); afterMatched = filter(after)
-    P->>P: включить, если beforeMatched ∨ afterMatched
-  end
-  alt есть совпадения
-    P->>Pub: publish(objectId, {subscriptionMatches, before, after, metadata})
-    Pub->>O: BEFORE_AFTER (key=objectId)
-  else нет
-    P-->>P: drop (no matches)
-  end
+```plantuml
+@startuml
+participant "objects.flat" as K
+participant MessageProcessor as P
+participant Backpressure as BP
+participant "Enrich Service" as E
+participant RevisionMatcher as M
+participant OutputPublisher as Pub
+participant "objects.enriched" as O
+K -> P : {before:{…}, after:{…}}
+P -> P : кандидаты (класс + не обе стороны FALSE)
+P -> P : union(requiredFields); revisions = [beforeId, afterId] (дедуп если равны)
+P -> BP : run(enrichRevisions)
+BP -> E : POST /api/v1/enriched-objects/{class}/revisions?outputField…  body:[ids]
+E --> BP : массив/объект версий
+BP --> P : response
+P -> M : match(response, revisions)
+M --> P : {beforeId→enriched, afterId→enriched} (обе обязательны, без дублей)
+loop каждый кандидат
+  P -> P : beforeMatched = filter(before); afterMatched = filter(after)
+  P -> P : включить, если beforeMatched ∨ afterMatched
+end
+alt есть совпадения
+  P -> Pub : publish(objectId, {subscriptionMatches, before, after, metadata})
+  Pub -> O : BEFORE_AFTER (key=objectId)
+else нет
+  P --> P : drop (no matches)
+end
+@enduml
 ```
 
 ## Runtime-конфигурация и registry
