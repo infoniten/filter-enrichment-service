@@ -113,7 +113,7 @@ bulkhead’ом resilience4j; при его насыщении (`BackpressureExc
 | Симптом | Вероятная причина | Что проверить |
 |---|---|---|
 | Под не становится ready | DataDictionary / Redis / Kafka / Enrich недоступны | детали `/health/ready`; связность метамодели, Redis, брокера; состояние circuit breaker |
-| Delivery-движки вообще не видят объектов | Нет обслуживаемых подписок или не тот тип движка | `filter_enrichment_active_subscriptions`; что у подписок `engine = SERVED_ENGINE` и `status = ACTIVE` в Redis |
+| Delivery-движки вообще не видят объектов | Нет активных подписок в Redis | `filter_enrichment_active_subscriptions`; что подписки со `status = ACTIVE` есть в `subs:runtime` (тип движка тут не важен — обслуживаются все) |
 | Всё уходит в drop (нет выхода) | Предматч отбраковывает всё либо фильтр не совпадает | `filter_enrichment_dropped_no_candidates_total` vs `…dropped_no_matches_total`; таргеты и фильтры подписок |
 | Конкретная подписка ничего не даёт | Не обслуживается здесь или FAILED (некомпилируемый фильтр) | `sub:{id}` в Redis; логи `Filter compilation failed` / отчёт FAILED в Subscription Service |
 | Растёт input DLQ | Дрейф формата источника | заголовок `error-reason` на `…input.dlq` |

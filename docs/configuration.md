@@ -14,11 +14,14 @@
 | `spring.data.redis.port` | `REDIS_PORT` | `6379` |
 | `spring.data.redis.timeout` | — | `2s` |
 
-## Тип обслуживаемого движка
+## Обслуживаемые подписки
 
-| Свойство | Env | По умолчанию | Примечания |
-|---|---|---|---|
-| `filter-enrichment.served-engine` | `SERVED_ENGINE` | `OBJECT_BATCH` | Обслуживаются только подписки `status = ACTIVE` **и** `engine = SERVED_ENGINE` |
+Сервис обслуживает **все** подписки со `status = ACTIVE`, **независимо от типа движка** (это общий
+upstream — совпадения нужны всем delivery-движкам). Фильтра по типу движка здесь нет.
+
+> `filter-enrichment.served-engine` / `SERVED_ENGINE` **больше не используется** (оставлено для
+> обратной совместимости конфигурации; значение игнорируется). Отбор по типу движка выполняется в
+> самих delivery-движках.
 
 ## Kafka — топики, consumer group, DLQ
 
@@ -132,7 +135,6 @@ REDIS_PORT=6379
 INPUT_TOPIC=objects.flat
 OUTPUT_TOPIC=objects.enriched
 CONSUMER_GROUP=filter-enrichment-service
-SERVED_ENGINE=OBJECT_BATCH
 DATA_DICTIONARY_URL=http://data-dictionary:8080
 ENRICH_SERVICE_URL=http://object-enrich-service:8080
 SUBSCRIPTION_SERVICE_URL=http://subscription-service:8080

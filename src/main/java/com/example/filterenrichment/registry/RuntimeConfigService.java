@@ -62,8 +62,8 @@ public class RuntimeConfigService {
             }
         }
         loaded.set(true);
-        log.info("Loaded runtime subscriptions: {} in set, {} served ({})",
-                ids == null ? 0 : ids.size(), served, props.getServedEngine());
+        log.info("Loaded runtime subscriptions from Redis: {} ids in subs:runtime, {} served (ACTIVE, all engine types)",
+                ids == null ? 0 : ids.size(), served);
     }
 
     /**
@@ -81,8 +81,11 @@ public class RuntimeConfigService {
             registry.remove(subscriptionId);
             return false;
         }
-        if (!sub.isActive() || !sub.hasEngine(props.getServedEngine())) {
-            registry.remove(subscriptionId); // only ACTIVE + served engine
+        if (!sub.isActive()) {
+            // Filter Enrichment is a shared upstream: it must pre-match ALL active subscriptions
+            // regardless of engine type (each delivery engine later selects its own). Do NOT filter
+            // by engine here — that would hide other engines' subscriptions from matchedSubscriptionIds.
+            registry.remove(subscriptionId);
             return false;
         }
         try {
