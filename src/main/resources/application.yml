@@ -3,9 +3,17 @@ spring:
     name: filter-enrichment-service
   data:
     redis:
+      # Standalone mode (default). For a Redis Cluster, set cluster.nodes (REDIS_CLUSTER_NODES) to a
+      # comma-separated host:port list — a cluster-aware client is then used (follows MOVED/ASK).
+      repositories:
+        enabled: false   # no Spring Data Redis (@RedisHash) repositories are used
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       timeout: 2s
+      cluster:
+        nodes: ${REDIS_CLUSTER_NODES:}
+        max-redirects: ${REDIS_CLUSTER_MAX_REDIRECTS:3}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
 
